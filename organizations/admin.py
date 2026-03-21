@@ -10,7 +10,7 @@ class OrganizationMemberInline(admin.TabularInline):
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+    list_display = ('id', 'name')
     search_fields = ('name',)
     inlines = (OrganizationMemberInline,)
 

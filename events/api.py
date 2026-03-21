@@ -139,7 +139,36 @@ def get_event_details(request, event_id: int):
     }
 
 
-# Event manager for organization members
+class ReviewRegistrationSchema(Schema):
+    status: str  # "approved" or "rejected"
+
+
+@router.post("/registrations/{int:registration_id}/review")
+def review_registration(request, registration_id: int, data: ReviewRegistrationSchema):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    if data.status not in (EventRegistration.Status.APPROVED, EventRegistration.Status.REJECTED):
+        return {"error": "Invalid status. Use 'approved' or 'rejected'"}
+
+    registration: EventRegistration = get_object_or_404(EventRegistration, id=registration_id)
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=registration.event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+
+    registration.status = data.status
+    registration.save()
+
+    return {
+        "message": "Registration status updated successfully",
+        "registration_id": registration.id,
+        "status": registration.status
+    }
+
+
 
 class CreateDraftEventSchema(Schema):
     organization_id: int
@@ -267,3 +296,5 @@ def publish_event(request, event_id: int):
         "message": "Event published successfully",
         "event_id": event.id
     }
+
+
