@@ -1,5 +1,6 @@
 import json
 from llm_api import LLM
+from prefill_url import prefill_url
 
 
 PROMPT = """You are matching form fields to database columns.
@@ -23,11 +24,16 @@ Example:
 """
 
 
-def match_fields(form: dict, db_columns: list[str]) -> dict:
+def match_fields(form: dict, db_columns: list[str], user_profile: dict) -> dict:
     """
-    Match form user_choice fields to DB columns using LLM.
+    Match form fields to DB columns and generate a prefill URL.
 
-    Returns: {field_name: db_column_or_None}
+    Returns:
+    {
+        "mapping": {field_name: db_column_or_None},
+        "prefill_url": "https://...",
+        "manual_fields": {field_name: field_info}   <- поля которые пользователь вводит сам
+    }
     """
     fields_info = {
         name: field.get("description") or field.get("type")
@@ -35,8 +41,27 @@ def match_fields(form: dict, db_columns: list[str]) -> dict:
     }
 
     llm = LLM()
-    result = llm.ask_json(PROMPT.format(
+    mapping = llm.ask_json(PROMPT.format(
         fields=json.dumps(fields_info, ensure_ascii=False, indent=2),
         columns=json.dumps(db_columns, ensure_ascii=False),
     ))
-    return result
+
+    # Build user_data from profile using mapping
+    user_data = {
+        field: user_profile[col]
+        for field, col in mapping.items()
+        if col and col in user_profile
+    }
+
+    # Fields that couldn't be matched — user fills manually
+    manual_fields = {
+        name: form["user_choice"][name]
+        for name, col in mapping.items()
+        if col is None
+    }
+
+    return {
+        "mapping": mapping,
+        "prefill_url": prefill_url(form, user_data),
+        "manual_fields": manual_fields,
+    }
