@@ -1,3 +1,13 @@
+from django.http import Http404
 from django.shortcuts import render
 
-# Create your views here.
+
+def user_profile(request):
+    user = request.user
+    if not user.is_authenticated:
+        return Http404()
+
+    context = {
+        'email': user.email,
+    }
+    return render(request, 'home.html', context)
