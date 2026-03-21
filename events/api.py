@@ -117,6 +117,7 @@ def get_event_details(request, event_id: int):
         "id": event.id,
         "title": event.title,
         "description": event.description,
+        "form": event.form,
         "registration_start": event.registration_start,
         "registration_end": event.registration_end,
         "event_start": event.event_start,
@@ -167,6 +168,8 @@ class UpdateDraftEventSchema(Schema):
     title: str
     description: str
 
+    form: list
+
     registration_start: str
     registration_end: str
 
@@ -202,8 +205,16 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
     except ValueError:
         return {"error": "Invalid date format. Use YYYY-MM-DDTHH:MM:SS."}
 
+    if registration_start >= registration_end:
+        return {"error": "Registration start date must be before registration end date"}
+    if registration_end > event_start:
+        return {"error": "Registration end date must be before event start date"}
+    if event_start >= event_end:
+        return {"error": "Event start date must be before event end date"}
+
     event.title = data.title
     event.description = data.description
+    event.form = data.form
     event.registration_start = registration_start
     event.registration_end = registration_end
     event.event_start = event_start
