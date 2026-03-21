@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPI Platform — События</title>
+  <title>UniSphere — События</title>
   <!-- Prevent flash on theme restore -->
   <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,7 @@
 <!-- ── Header ─────────────────────────────────────────── -->
 <header class="header">
   <a href="/" class="logo">
-    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="SPI Platform">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
 
   <div class="search-wrap">
@@ -32,7 +32,7 @@
   </div>
 
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
-  <a href="/auth/" class="account-btn" title="Аккаунт" id="accountBtn">Акк</a>
+  <a href="/auth/" class="account-btn" title="Войти" id="accountBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></a>
 </header>
 
 <!-- ── Main ───────────────────────────────────────────── -->
@@ -243,15 +243,6 @@
 </footer>
 
 <script src="{% static 'js/carousel.js' %}"></script>
-<script>
-  fetch('/api/users/me').then(r=>r.json()).then(d=>{
-    if(d.id){
-      const btn=document.getElementById('accountBtn');
-      const initials=(d.first_name?d.first_name[0]:'')+(d.last_name?d.last_name[0]:'');
-      btn.textContent=initials||'Акк';
-      btn.title=d.first_name+' '+d.last_name;
-    }
-  }).catch(()=>{});
-</script>
+<script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

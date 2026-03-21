@@ -4,72 +4,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPI Platform — Вход</title>
+  <title>UniSphere — Вход</title>
   <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <!-- Early redirect if already logged in (prevents form flash) -->
+  <script>
+    try {
+      if (sessionStorage.getItem('us_user')) { window.location.replace('/profile/'); }
+    } catch(e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
   <style>
-    .auth-wrap {
-      min-height: calc(100vh - 70px);
+    .auth-page-wrap {
+      height: calc(100vh - 65px);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px 20px;
+      padding: 12px 20px;
     }
 
     .auth-card {
       background: var(--card-bg);
       border: 1.5px solid var(--border);
-      border-radius: 24px;
+      border-radius: 20px;
       box-shadow: var(--shadow);
-      padding: 40px 36px;
+      padding: 28px 32px 24px;
       width: 100%;
       max-width: 400px;
       transition: background .25s, border-color .25s;
     }
 
-    .auth-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text);
-      text-align: center;
-      margin-bottom: 28px;
-    }
-
-    .auth-form { display: flex; flex-direction: column; gap: 16px; }
-
-    .auth-field { display: flex; flex-direction: column; gap: 6px; }
-
-    .auth-label {
-      font-size: .88rem;
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    .auth-input {
-      height: 42px;
+    /* ── Tab switcher ─────────────────────────── */
+    .auth-tabs {
+      display: flex;
       border: 1.5px solid var(--border);
       border-radius: 10px;
-      padding: 0 14px;
-      font-size: .95rem;
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 8px 0;
+      text-align: center;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      transition: background .2s, color .2s;
+    }
+    .auth-tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .auth-tab:not(.active):hover { background: var(--accent-l); color: var(--accent); }
+
+    /* ── Form ─────────────────────────────────── */
+    .auth-section { display: none; }
+    .auth-section.active { display: block; }
+
+    .auth-form { display: flex; flex-direction: column; gap: 12px; }
+    .auth-field { display: flex; flex-direction: column; gap: 4px; }
+    .auth-label { font-size: .82rem; color: var(--text); font-weight: 500; }
+
+    .auth-input {
+      height: 38px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: .9rem;
       color: var(--text);
       background: var(--bg);
       outline: none;
-      transition: border-color .2s, background .25s;
+      transition: border-color .2s, background .25s, color .25s;
       font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
     }
     .auth-input:focus { border-color: var(--accent); background: var(--card-bg); }
 
     .auth-btn {
       margin-top: 4px;
-      height: 44px;
+      height: 40px;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 10px;
-      font-size: .95rem;
+      font-size: .92rem;
       font-weight: 600;
       cursor: pointer;
       transition: background .2s, transform .15s;
@@ -78,43 +103,32 @@
     .auth-btn:hover { background: #0d6b8a; transform: translateY(-1px); }
     .auth-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-    .auth-switch {
-      text-align: center;
-      font-size: .88rem;
-      color: var(--muted);
-      margin-top: 8px;
+    /* ── Messages ─────────────────────────────── */
+    .auth-msg {
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: .85rem;
+      display: none;
+      margin-bottom: 4px;
     }
-    .auth-switch a {
+    .auth-msg.error  { background: #fee2e2; color: #b91c1c; }
+    .auth-msg.success { background: #d1fae5; color: #065f46; }
+    [data-theme="dark"] .auth-msg.error  { background: #3f0f0f; color: #f87171; }
+    [data-theme="dark"] .auth-msg.success { background: #052e16; color: #34d399; }
+
+    /* ── Demo notice ──────────────────────────── */
+    .auth-demo-notice {
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 10px;
+    }
+    .auth-demo-notice a {
       color: var(--accent);
       text-decoration: none;
       cursor: pointer;
-      font-weight: 500;
     }
-    .auth-switch a:hover { text-decoration: underline; }
-
-    .auth-error {
-      background: #fee2e2;
-      color: #b91c1c;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: .88rem;
-      display: none;
-    }
-    [data-theme="dark"] .auth-error { background: #3f0f0f; color: #f87171; }
-
-    .auth-success {
-      background: #d1fae5;
-      color: #065f46;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: .88rem;
-      display: none;
-    }
-    [data-theme="dark"] .auth-success { background: #052e16; color: #34d399; }
-
-    /* Hide inactive form */
-    .auth-form-section { display: none; }
-    .auth-form-section.active { display: block; }
+    .auth-demo-notice a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -122,227 +136,283 @@
 <!-- ── Header ─────────────────────────────────────────── -->
 <header class="header">
   <a href="/" class="logo">
-    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="SPI Platform">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
   <div class="search-wrap"></div>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
 </header>
 
-<!-- ── Auth ───────────────────────────────────────────── -->
-<div class="auth-wrap">
+<!-- ── Auth card ──────────────────────────────────────── -->
+<div class="auth-page-wrap">
   <div class="auth-card">
 
-    <!-- LOGIN SECTION -->
-    <div class="auth-form-section active" id="loginSection">
-      <h1 class="auth-title">Добро пожаловать</h1>
-      <div class="auth-error" id="loginError"></div>
-      <div class="auth-success" id="loginSuccess"></div>
+    <!-- Tab switcher -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin">Войти</button>
+      <button class="auth-tab" id="tabRegister">Регистрация</button>
+    </div>
+
+    <!-- ── LOGIN ─────────────────────────────── -->
+    <div class="auth-section active" id="loginSection">
+      <div class="auth-msg" id="loginMsg"></div>
       <form class="auth-form" id="loginForm" novalidate>
         <div class="auth-field">
-          <label class="auth-label" for="loginEmail">Почта</label>
-          <input class="auth-input" type="email" id="loginEmail" name="email" required autocomplete="email">
+          <label class="auth-label" for="loginEmail">Email</label>
+          <input class="auth-input" type="email" id="loginEmail" name="email"
+                 required autocomplete="email" placeholder="you@example.com">
         </div>
         <div class="auth-field">
           <label class="auth-label" for="loginPassword">Пароль</label>
-          <input class="auth-input" type="password" id="loginPassword" name="password" required autocomplete="current-password">
+          <input class="auth-input" type="password" id="loginPassword" name="password"
+                 required autocomplete="current-password" placeholder="••••••••">
         </div>
         <button class="auth-btn" type="submit" id="loginBtn">Войти</button>
       </form>
-      <p class="auth-switch">Нет аккаунта? <a id="toRegister">Зарегистрироваться</a></p>
+      <p class="auth-demo-notice">
+        Нет аккаунта?
+        <a id="loginToRegister">Зарегистрироваться</a>
+        &nbsp;·&nbsp;
+        <a id="loginDemo">Войти как гость</a>
+      </p>
     </div>
 
-    <!-- REGISTER SECTION -->
-    <div class="auth-form-section" id="registerSection">
-      <h1 class="auth-title">Создать аккаунт</h1>
-      <div class="auth-error" id="registerError"></div>
-      <div class="auth-success" id="registerSuccess"></div>
+    <!-- ── REGISTER ──────────────────────────── -->
+    <div class="auth-section" id="registerSection">
+      <div class="auth-msg" id="registerMsg"></div>
       <form class="auth-form" id="registerForm" novalidate>
         <div class="auth-field">
-          <label class="auth-label" for="lastName">Фамилия</label>
-          <input class="auth-input" type="text" id="lastName" name="last_name" required>
+          <label class="auth-label" for="regName">Имя</label>
+          <input class="auth-input" type="text" id="regName" name="first_name"
+                 required autocomplete="given-name" placeholder="Иван">
         </div>
         <div class="auth-field">
-          <label class="auth-label" for="firstName">Имя</label>
-          <input class="auth-input" type="text" id="firstName" name="first_name" required>
-        </div>
-        <div class="auth-field">
-          <label class="auth-label" for="patronymic">Отчество</label>
-          <input class="auth-input" type="text" id="patronymic" name="patronymic">
-        </div>
-        <div class="auth-field">
-          <label class="auth-label" for="birthDate">Дата рождения</label>
-          <input class="auth-input" type="date" id="birthDate" name="birth_date" required>
-        </div>
-        <div class="auth-field">
-          <label class="auth-label" for="regEmail">Почта</label>
-          <input class="auth-input" type="email" id="regEmail" name="email" required autocomplete="email">
+          <label class="auth-label" for="regEmail">Email</label>
+          <input class="auth-input" type="email" id="regEmail" name="email"
+                 required autocomplete="email" placeholder="you@example.com">
         </div>
         <div class="auth-field">
           <label class="auth-label" for="regPassword">Пароль</label>
-          <input class="auth-input" type="password" id="regPassword" name="password" required autocomplete="new-password">
+          <input class="auth-input" type="password" id="regPassword" name="password"
+                 required autocomplete="new-password" placeholder="Минимум 6 символов">
         </div>
         <div class="auth-field">
-          <label class="auth-label" for="regPasswordConfirm">Подтверждение пароля</label>
-          <input class="auth-input" type="password" id="regPasswordConfirm" name="password_confirm" required autocomplete="new-password">
+          <label class="auth-label" for="regConfirm">Подтверждение пароля</label>
+          <input class="auth-input" type="password" id="regConfirm" name="password_confirm"
+                 required autocomplete="new-password" placeholder="Повторите пароль">
         </div>
-        <button class="auth-btn" type="submit" id="registerBtn">Зарегистрироваться</button>
+        <button class="auth-btn" type="submit" id="registerBtn">Создать аккаунт</button>
       </form>
-      <p class="auth-switch">Есть аккаунт? <a id="toLogin">Войти</a></p>
+      <p class="auth-demo-notice">
+        Уже есть аккаунт? <a id="registerToLogin">Войти</a>
+      </p>
     </div>
 
   </div>
 </div>
 
-<footer class="footer">
-  <a href="/about">О нас</a>
-</footer>
-
+<script src="{% static 'js/auth.js' %}"></script>
 <script>
-  // ── Theme toggle ────────────────────────────────────────
-  const themeBtn = document.getElementById('themeToggle');
+(function () {
+  /* ── Theme ──────────────────────────────────────────── */
+  var themeBtn = document.getElementById('themeToggle');
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
     localStorage.setItem('theme', t);
   }
   applyTheme(localStorage.getItem('theme') || 'light');
-  themeBtn.addEventListener('click', () => {
+  themeBtn.addEventListener('click', function () {
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
-  // ── Tab switching ───────────────────────────────────────
-  const loginSection    = document.getElementById('loginSection');
-  const registerSection = document.getElementById('registerSection');
+  /* ── Tab switching ──────────────────────────────────── */
+  var loginSection    = document.getElementById('loginSection');
+  var registerSection = document.getElementById('registerSection');
+  var tabLogin        = document.getElementById('tabLogin');
+  var tabRegister     = document.getElementById('tabRegister');
 
-  document.getElementById('toRegister').addEventListener('click', () => {
-    loginSection.classList.remove('active');
-    registerSection.classList.add('active');
-    clearMessages();
-  });
-  document.getElementById('toLogin').addEventListener('click', () => {
-    registerSection.classList.remove('active');
-    loginSection.classList.add('active');
-    clearMessages();
-  });
-
-  // Check URL hash on load
-  if (window.location.hash === '#register') {
-    loginSection.classList.remove('active');
-    registerSection.classList.add('active');
+  function showTab(tab) {
+    if (tab === 'login') {
+      loginSection.classList.add('active');
+      registerSection.classList.remove('active');
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+    } else {
+      registerSection.classList.add('active');
+      loginSection.classList.remove('active');
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+    }
+    clearMsg('loginMsg');
+    clearMsg('registerMsg');
   }
 
-  function clearMessages() {
-    ['loginError','loginSuccess','registerError','registerSuccess'].forEach(id => {
-      const el = document.getElementById(id);
-      el.style.display = 'none';
-      el.textContent = '';
-    });
-  }
+  tabLogin.addEventListener('click', function ()    { showTab('login'); });
+  tabRegister.addEventListener('click', function () { showTab('register'); });
+  document.getElementById('loginToRegister').addEventListener('click', function () { showTab('register'); });
+  document.getElementById('registerToLogin').addEventListener('click', function () { showTab('login'); });
 
-  function showMsg(id, msg) {
-    const el = document.getElementById(id);
-    el.textContent = msg;
+  if (window.location.hash === '#register') { showTab('register'); }
+
+  /* ── Message helpers ────────────────────────────────── */
+  function showMsg(id, text, type) {
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'auth-msg ' + (type || 'error');
     el.style.display = 'block';
   }
-
-  function parseError(data, status) {
-    if (data.error) return data.error;
-    if (data.detail) {
-      if (Array.isArray(data.detail)) return data.detail.map(e => e.msg).join(', ');
+  function clearMsg(id) {
+    var el = document.getElementById(id);
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+  function parseApiError(data, status) {
+    if (data && data.error)  return data.error;
+    if (data && data.detail) {
+      if (Array.isArray(data.detail)) return data.detail.map(function(e){return e.msg;}).join(', ');
       return data.detail;
     }
     return 'Ошибка ' + status;
   }
 
-  // ── Login ───────────────────────────────────────────────
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  /* ── Redirect after auth ────────────────────────────── */
+  function redirectToProfile() {
+    window.location.href = '/profile/';
+  }
+
+  /* ── Demo / guest login ─────────────────────────────── */
+  function startDemoSession(name, email) {
+    UniSphereAuth.setUser({
+      id:         'demo_' + Date.now(),
+      first_name: name  || 'Гость',
+      last_name:  '',
+      email:      email || 'demo@unisphere.ru',
+      is_demo:    true,
+    });
+    redirectToProfile();
+  }
+
+  document.getElementById('loginDemo').addEventListener('click', function () {
+    startDemoSession('Гость', 'demo@unisphere.ru');
+  });
+
+  /* ── LOGIN ──────────────────────────────────────────── */
+  document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    clearMessages();
-    const btn = document.getElementById('loginBtn');
+    clearMsg('loginMsg');
+    var btn   = document.getElementById('loginBtn');
+    var email = document.getElementById('loginEmail').value.trim();
+    var pass  = document.getElementById('loginPassword').value;
+
+    if (!email || !pass) {
+      showMsg('loginMsg', 'Введите email и пароль.');
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Вход...';
 
-    const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-
     try {
-      const res = await fetch('/api/users/login', {
-        method: 'POST',
+      var res = await fetch('/api/users/login', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body:    JSON.stringify({ email: email, password: pass }),
       });
-      if (res.status === 404) {
-        showMsg('loginError', 'Неверный email или пароль.');
-      } else {
-        const data = await res.json();
-        if (data.success) {
-          showMsg('loginSuccess', 'Вы успешно вошли! Перенаправляем...');
-          setTimeout(() => { window.location.href = '/'; }, 800);
-        } else {
-          showMsg('loginError', parseError(data, res.status));
-        }
+
+      if (res.status === 404 || res.status === 401) {
+        showMsg('loginMsg', 'Неверный email или пароль.');
+        return;
       }
-    } catch {
-      showMsg('loginError', 'Ошибка соединения с сервером.');
+
+      var data = await res.json();
+
+      if (data.success || data.id) {
+        /* Real login succeeded — fetch full profile */
+        try {
+          var me = await fetch('/api/users/me');
+          var user = await me.json();
+          UniSphereAuth.setUser(user);
+        } catch (_) {
+          UniSphereAuth.setUser({ email: email, first_name: email.split('@')[0], last_name: '', id: data.id || 1 });
+        }
+        showMsg('loginMsg', 'Успешный вход! Перенаправляем...', 'success');
+        setTimeout(redirectToProfile, 700);
+      } else {
+        showMsg('loginMsg', parseApiError(data, res.status));
+      }
+
+    } catch (_) {
+      /* Network error — fall back to demo session */
+      showMsg('loginMsg', 'Сервер недоступен. Создаём демо-сессию...', 'success');
+      setTimeout(function () { startDemoSession(email.split('@')[0], email); }, 800);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Войти';
     }
   });
 
-  // ── Register ────────────────────────────────────────────
-  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  /* ── REGISTER ───────────────────────────────────────── */
+  document.getElementById('registerForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    clearMessages();
+    clearMsg('registerMsg');
 
-    const password        = document.getElementById('regPassword').value;
-    const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+    var name     = document.getElementById('regName').value.trim();
+    var email    = document.getElementById('regEmail').value.trim();
+    var pass     = document.getElementById('regPassword').value;
+    var confirm  = document.getElementById('regConfirm').value;
 
-    if (password !== passwordConfirm) {
-      showMsg('registerError', 'Пароли не совпадают.');
-      return;
-    }
+    /* Front-end validation */
+    if (!name)              { showMsg('registerMsg', 'Введите ваше имя.');           return; }
+    if (!email)             { showMsg('registerMsg', 'Введите email.');              return; }
+    if (pass.length < 6)    { showMsg('registerMsg', 'Пароль минимум 6 символов.');  return; }
+    if (pass !== confirm)   { showMsg('registerMsg', 'Пароли не совпадают.');        return; }
 
-    const btn = document.getElementById('registerBtn');
+    var btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.textContent = 'Регистрация...';
 
-    const payload = {
-      last_name:  document.getElementById('lastName').value.trim(),
-      first_name: document.getElementById('firstName').value.trim(),
-      patronymic: document.getElementById('patronymic').value.trim() || '',
-      birth_date: document.getElementById('birthDate').value,
-      email:      document.getElementById('regEmail').value.trim(),
-      password,
+    /* Send to real API (extra fields set to defaults for compatibility) */
+    var payload = {
+      first_name: name,
+      last_name:  '',
+      patronymic: '',
+      birth_date: '2000-01-01',
+      email:      email,
+      password:   pass,
     };
 
-    if (!payload.last_name || !payload.first_name || !payload.birth_date || !payload.email || !payload.password) {
-      showMsg('registerError', 'Пожалуйста, заполните все обязательные поля.');
-      btn.disabled = false;
-      btn.textContent = 'Зарегистрироваться';
-      return;
-    }
-
     try {
-      const res = await fetch('/api/users/register', {
-        method: 'POST',
+      var res  = await fetch('/api/users/register', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) {
-        showMsg('registerSuccess', 'Аккаунт создан! Перенаправляем...');
-        setTimeout(() => { window.location.href = '/'; }, 800);
+      var data = await res.json();
+
+      if (data.success || data.id) {
+        UniSphereAuth.setUser({
+          id:         data.id || 1,
+          first_name: name,
+          last_name:  '',
+          email:      email,
+        });
+        showMsg('registerMsg', 'Аккаунт создан! Перенаправляем...', 'success');
+        setTimeout(redirectToProfile, 700);
       } else {
-        showMsg('registerError', parseError(data, res.status));
+        showMsg('registerMsg', parseApiError(data, res.status));
       }
-    } catch {
-      showMsg('registerError', 'Ошибка соединения с сервером.');
+
+    } catch (_) {
+      /* Network error — demo session */
+      showMsg('registerMsg', 'Сервер недоступен. Создаём демо-аккаунт...', 'success');
+      setTimeout(function () { startDemoSession(name, email); }, 800);
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Зарегистрироваться';
+      btn.textContent = 'Создать аккаунт';
     }
   });
+
+}());
 </script>
 </body>
 </html>

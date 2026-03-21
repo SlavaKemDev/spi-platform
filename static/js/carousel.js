@@ -37,8 +37,11 @@
     function maxOffset() {
       var cw = cardWidth();
       if (!cw) return 0;
-      // total content width minus the visible viewport width
-      return Math.max(0, cards.length * (cw + GAP_PX) - GAP_PX - clip.offsetWidth);
+      // Account for clip's horizontal padding: the track starts at paddingLeft offset,
+      // so the effective viewport shifts. Add both paddings back to allow full scroll.
+      var cs = window.getComputedStyle(clip);
+      var padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      return Math.max(0, cards.length * (cw + GAP_PX) - GAP_PX - clip.offsetWidth + padH);
     }
 
     function applyOffset(offset, withTransition) {
