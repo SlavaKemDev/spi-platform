@@ -10,6 +10,18 @@ from organizations.models import *
 router = Router(tags=["Organizations"])
 
 
+@router.get("/")
+def get_all_organizations(request):
+    organizations = []
+    for organization in Organization.objects.all():
+        organizations.append({
+            "id": organization.id,
+            "name": organization.name,
+            "description": organization.description,
+        })
+    return organizations
+
+
 @router.get("/my")
 def get_my_organizations(request):
     user = request.user
@@ -28,6 +40,57 @@ def get_my_organizations(request):
         })
 
     return organizations
+
+
+class AddMemberSchema(Schema):
+    user_id: int
+
+
+@router.post("/{int:organization_id}/members/add")
+def add_member(request, organization_id: int, data: AddMemberSchema):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    organization = get_object_or_404(Organization, id=organization_id)
+
+    requester = OrganizationMember.objects.filter(user=user, organization=organization).first()
+    if not requester or not requester.is_admin:
+        return {"error": "User is not an admin of this organization"}
+
+    target_user = get_object_or_404(User, id=data.user_id)
+
+    if OrganizationMember.objects.filter(user=target_user, organization=organization).exists():
+        return {"error": "User is already a member of this organization"}
+
+    OrganizationMember.objects.create(user=target_user, organization=organization, is_admin=False)
+
+    return {"success": True, "message": "User added to organization"}
+
+
+@router.post("/{int:organization_id}/members/{int:user_id}/promote")
+def promote_to_admin(request, organization_id: int, user_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    organization = get_object_or_404(Organization, id=organization_id)
+
+    requester = OrganizationMember.objects.filter(user=user, organization=organization).first()
+    if not requester or not requester.is_admin:
+        return {"error": "User is not an admin of this organization"}
+
+    member = OrganizationMember.objects.filter(user_id=user_id, organization=organization).first()
+    if not member:
+        return {"error": "User is not a member of this organization"}
+
+    if member.is_admin:
+        return {"error": "User is already an admin"}
+
+    member.is_admin = True
+    member.save()
+
+    return {"success": True, "message": "User promoted to admin"}
 
 
 @router.get("/{organization_id}")

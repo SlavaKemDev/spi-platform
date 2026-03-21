@@ -10,7 +10,7 @@ class UnicodeJSONRenderer(JSONRenderer):
     json_dumps_params = {"ensure_ascii": False}
 
 
-api = NinjaAPI(title="СПИ API", version="1.0", renderer=UnicodeJSONRenderer())
+api = NinjaAPI(title="UniSphere API", version="1.0", renderer=UnicodeJSONRenderer())
 
 api.add_router("users/", users_router)
 api.add_router("events/", events_router)

@@ -75,7 +75,10 @@ def _read_google_form(url: str) -> dict:
     for field in fields_raw:
         title = field[1]
         field_type_id = field[3]
-        entries = field[4]
+        entries = field[4] if len(field) > 4 else None
+
+        if not entries:
+            continue
 
         for entry in entries:
             entry_id = f"entry.{entry[0]}"
@@ -106,13 +109,18 @@ def _read_google_form(url: str) -> dict:
 
 def _read_generic_form(url: str) -> dict:
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        # Firefox has a different TLS fingerprint — required for Yandex/some other sites
+        # that block Chromium headless at the TCP/TLS level
+        is_yandex = "yandex.ru" in url or "yandex.com" in url
+        browser = p.firefox.launch() if is_yandex else p.chromium.launch(
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        )
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 800},
+            locale="ru-RU",
         )
         page = context.new_page()
-        page.goto(url, wait_until="domcontentloaded")
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
         page.wait_for_timeout(4000)
         html = page.content()
         browser.close()

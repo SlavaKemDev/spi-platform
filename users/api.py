@@ -1,7 +1,7 @@
 from django.utils import timezone
 from datetime import datetime
 
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from ninja import Router, Schema
 from django.shortcuts import get_object_or_404
 from .models import *
@@ -74,6 +74,16 @@ def login_view(request, data: UserLoginSchema):
             "email": user.email
         }
     }
+
+
+@router.post("logout")
+def logout_view(request):
+    if not request.user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    logout(request)
+
+    return {"success": True, "message": "User logged out successfully"}
 
 
 @router.get("me")
