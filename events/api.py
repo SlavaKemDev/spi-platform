@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
@@ -16,8 +16,8 @@ def get_upcoming_events(request):
         return {"error": "User is not authenticated"}
 
     events = Event.objects.filter(
-        registration_start__lte=datetime.now(),
-        registration_end__gte=datetime.now(),
+        registration_start__lte=timezone.now(),
+        registration_end__gte=timezone.now(),
     )
 
     events_list = []
@@ -45,7 +45,7 @@ def register_for_event(request, event_id: int):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    if event.registration_start > datetime.now() or event.registration_end < datetime.now():
+    if event.registration_start > timezone.now() or event.registration_end < timezone.now():
         return {"error": "Registration for this event is not open"}
 
     if EventRegistration.objects.filter(user=user, event=event).exists():
@@ -57,3 +57,20 @@ def register_for_event(request, event_id: int):
         "message": "User successfully registered for the event",
         "registration_id": registration.id
     }
+
+
+@router.post("{event_id}/unregister")
+def unregister_from_event(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    registration = EventRegistration.objects.filter(user=user, event=event).first()
+    if not registration:
+        return {"error": "User is not registered for this event"}
+
+    registration.delete()
+
+    return {"message": "User successfully unregistered from the event"}
