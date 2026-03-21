@@ -1,11 +1,10 @@
-from datetime import date, datetime
+from datetime import datetime
 
-from django.contrib.auth import login
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
-from events.models import Event
-from users.models import User
+from events.models import *
+from users.models import *
 
 router = Router(tags=["Users"])
 
@@ -36,3 +35,25 @@ def get_upcoming_events(request):
         })
 
     return events_list
+
+
+@router.post("{event_id}/register")
+def register_for_event(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    if event.registration_start > datetime.now() or event.registration_end < datetime.now():
+        return {"error": "Registration for this event is not open"}
+
+    if EventRegistration.objects.filter(user=user, event=event).exists():
+        return {"error": "User is already registered for this event"}
+
+    registration = EventRegistration.objects.create(user=user, event=event)
+
+    return {
+        "message": "User successfully registered for the event",
+        "registration_id": registration.id
+    }
