@@ -7,11 +7,13 @@ class Event(models.Model):
         ONLINE = 'online', 'Онлайн'
         OFFLINE = 'offline', 'Оффлайн'
 
-    title = models.CharField(max_length=255, verbose_name='Название')
-    description = models.TextField(verbose_name='Описание')
+    title = models.CharField(max_length=255, verbose_name='Название', blank=True)
+    description = models.TextField(verbose_name='Описание', blank=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
 
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
+
+    form = models.JSONField(default=dict, blank=True, verbose_name='Поля формы регистрации')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
@@ -19,7 +21,7 @@ class Event(models.Model):
     event_start = models.DateTimeField(verbose_name='Дата начала')
     event_end = models.DateTimeField(verbose_name='Дата окончания')
 
-    location = models.CharField(max_length=255, verbose_name='Место проведения')
+    location = models.CharField(max_length=255, verbose_name='Место проведения', blank=True)
     format = models.CharField(
         max_length=10,
         choices=Format.choices,
