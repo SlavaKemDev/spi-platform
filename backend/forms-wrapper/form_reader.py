@@ -101,7 +101,6 @@ def _read_google_form(url: str) -> dict:
         "action": action,
         "required": required,
         "user_choice": user_choice,
-        "_session": session,
     }
 
 
