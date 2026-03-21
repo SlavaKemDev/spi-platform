@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='event',
             name='form',
-            field=models.JSONField(blank=True, default=dict, verbose_name='Поля формы регистрации'),
+            field=models.JSONField(blank=True, default=list, verbose_name='Поля формы регистрации'),
         ),
         migrations.AlterField(
             model_name='event',

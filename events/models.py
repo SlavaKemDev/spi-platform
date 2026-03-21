@@ -13,7 +13,7 @@ class Event(models.Model):
 
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
 
-    form = models.JSONField(default=dict, blank=True, verbose_name='Поля формы регистрации')
+    form = models.JSONField(default=list, blank=True, verbose_name='Поля формы регистрации')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
