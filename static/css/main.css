@@ -176,8 +176,8 @@ html, body {
 .carousel-clip {
   flex: 1;
   overflow: hidden;
-  padding: 20px 6px;
-  margin: -20px -6px;
+  padding: 20px 32px;
+  margin: -20px -32px;
 }
 
 .carousel-track {
@@ -386,3 +386,218 @@ html, body {
   display: inline-block;
 }
 .btn-register:hover { background: #0d6b8a; transform: translateY(-1px); }
+
+/* ─── Organizer button (event detail page) ─────────────── */
+.btn-organizer {
+  padding: 10px 24px;
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color .2s, background .2s, color .2s;
+  display: inline-block;
+}
+.btn-organizer:hover { background: var(--accent); color: #fff; }
+
+/* ─── Welcome & Future special cards ───────────────────── */
+.welcome-card .card-image {
+  background: linear-gradient(135deg, #e8f5e9 0%, #b2dfdb 100%);
+  font-size: 2.8rem;
+}
+[data-theme="dark"] .welcome-card .card-image {
+  background: linear-gradient(135deg, #1b3a2d 0%, #0d3530 100%);
+}
+
+.future-card .card-image {
+  background: linear-gradient(135deg, #ede7f6 0%, #c5cae9 100%);
+  font-size: 2.8rem;
+}
+[data-theme="dark"] .future-card .card-image {
+  background: linear-gradient(135deg, #2a1b3d 0%, #1a1f3a 100%);
+}
+
+.special-card-subtitle {
+  font-size: .88rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 4px;
+  flex: 1;
+}
+
+/* ─── Organizer Page ────────────────────────────────────── */
+.org-wrap {
+  max-width: 760px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+
+.org-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: background .25s, border-color .25s;
+}
+
+.org-banner {
+  width: 100%;
+  aspect-ratio: 21/9;
+  background: linear-gradient(135deg, var(--accent-l) 0%, var(--border) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+
+.org-body {
+  padding: 36px 40px 40px;
+}
+
+.org-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.org-tagline {
+  font-size: 1rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.org-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 28px 0 12px;
+}
+
+.org-desc {
+  font-size: .97rem;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.org-events-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.org-events-list li {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: .92rem;
+  color: var(--text);
+  transition: background .25s, border-color .25s;
+}
+
+.org-events-list li span.org-event-emoji {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.org-actions {
+  margin-top: 36px;
+}
+
+/* ─── About Page ────────────────────────────────────────── */
+.about-wrap {
+  max-width: 760px;
+  margin: 60px auto;
+  padding: 0 24px 60px;
+}
+
+.about-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: background .25s, border-color .25s;
+}
+
+.about-banner {
+  width: 100%;
+  aspect-ratio: 21/9;
+  background: linear-gradient(135deg, var(--accent-l) 0%, var(--border) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  gap: 16px;
+}
+
+.about-body {
+  padding: 36px 40px 40px;
+}
+
+.about-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.about-lead {
+  font-size: 1.05rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+.about-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 28px 0 10px;
+}
+
+.about-text {
+  font-size: .97rem;
+  color: var(--muted);
+  line-height: 1.75;
+  margin-bottom: 12px;
+}
+
+.about-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.about-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: .95rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.about-features li .feat-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.about-actions {
+  margin-top: 36px;
+}

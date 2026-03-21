@@ -22,13 +22,15 @@ from django.conf.urls.static import static
 
 from core.api import api
 from users.views import user_profile
-from events.views import home, event_detail
+from events.views import home, event_detail, organizer_page, about_page
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api.urls),
     path('', home, name='home'),
     path('events/<int:event_id>/', event_detail, name='event_detail'),
+    path('organizer/<int:event_id>/', organizer_page, name='organizer_page'),
+    path('about/', about_page, name='about_page'),
     path('home', user_profile, name='user_profile'),  # temporary, for testing purposes
 ]
 

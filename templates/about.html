@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>О нас — SPI Platform</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="SPI Platform">
+  </a>
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Поиск событий...">
+    <button class="filter-btn" title="Фильтры">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6"  x2="20" y2="6"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+        <line x1="10" y1="18" x2="14" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+  <button class="account-btn" title="Аккаунт">Акк</button>
+</header>
+
+<!-- ── About Page ─────────────────────────────────────── -->
+<div class="about-wrap">
+  <div class="about-card">
+
+    <div class="about-banner">🎓 🚀 🤝</div>
+
+    <div class="about-body">
+      <h1 class="about-title">О платформе SPI</h1>
+      <p class="about-lead">
+        Всё, что нужно студенту для насыщенной учёбы и карьерного старта — в одном месте.
+      </p>
+
+      <h2 class="about-section-title">Что такое SPI Platform?</h2>
+      <p class="about-text">
+        SPI Platform — это современная площадка для поиска студенческих и профессиональных мероприятий.
+        Мы собираем в одном месте хакатоны, конференции, воркшопы, лекции и карьерные ярмарки, чтобы
+        каждый студент мог легко найти событие, которое поможет ему расти.
+      </p>
+      <p class="about-text">
+        Платформа создана командой студентов и выпускников, которые сами прошли путь от первых митапов
+        до международных конференций. Мы знаем, как важно оказаться в нужном месте в нужное время —
+        и хотим сделать этот путь проще для каждого.
+      </p>
+
+      <h2 class="about-section-title">Что мы предлагаем</h2>
+      <ul class="about-features">
+        <li>
+          <span class="feat-icon">🔍</span>
+          <span><strong>Удобный поиск событий.</strong> Находите мероприятия по интересам, дате
+          и формату — онлайн или офлайн.</span>
+        </li>
+        <li>
+          <span class="feat-icon">🏢</span>
+          <span><strong>Страницы организаторов.</strong> Узнавайте больше о сообществах и компаниях,
+          которые проводят события, подписывайтесь на новые мероприятия.</span>
+        </li>
+        <li>
+          <span class="feat-icon">📅</span>
+          <span><strong>Регистрация в один клик.</strong> Записывайтесь на интересующие вас события
+          прямо на платформе — без лишних переходов.</span>
+        </li>
+        <li>
+          <span class="feat-icon">🤝</span>
+          <span><strong>Знакомство с сообществами.</strong> Находите единомышленников, вступайте
+          в студенческие клубы и профессиональные группы.</span>
+        </li>
+        <li>
+          <span class="feat-icon">🎯</span>
+          <span><strong>Упрощение студенческой активности.</strong> Всё важное — в одном приложении:
+          события, организаторы и анонсы.</span>
+        </li>
+      </ul>
+
+      <h2 class="about-section-title">Наша миссия</h2>
+      <p class="about-text">
+        Мы верим, что студенческие годы — это время возможностей. Каждый хакатон, каждая лекция
+        и каждая карьерная ярмарка — это шанс найти свой путь, встретить людей, которые изменят
+        твою жизнь, и сделать первый шаг к мечте.
+      </p>
+      <p class="about-text">
+        SPI Platform создана для того, чтобы ни одна такая возможность не прошла мимо.
+      </p>
+
+      <div class="about-actions">
+        <a href="/" class="btn-back">← На главную</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="{% static 'js/carousel.js' %}"></script>
+</body>
+</html>
