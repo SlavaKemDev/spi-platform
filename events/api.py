@@ -8,6 +8,8 @@ from events.models import *
 from organizations.models import OrganizationMember
 from users.models import *
 
+from .regform import validate_form_schema, validate_form_data
+
 router = Router(tags=["Events"])
 
 
@@ -39,8 +41,12 @@ def get_upcoming_events(request):
     return events_list
 
 
+class EventRegistrationSchema(Schema):
+    form_answer: dict
+
+
 @router.post("/{int:event_id}/register")
-def register_for_event(request, event_id: int):
+def register_for_event(request, event_id: int, data: EventRegistrationSchema):
     user = request.user
     if not user.is_authenticated:
         return {"error": "User is not authenticated"}
@@ -53,7 +59,12 @@ def register_for_event(request, event_id: int):
     if EventRegistration.objects.filter(user=user, event=event).exists():
         return {"error": "User is already registered for this event"}
 
-    registration = EventRegistration.objects.create(user=user, event=event)
+    is_valid, err = validate_form_data(data.form_answer, event.form)
+
+    if not is_valid:
+        return {"error": f"Invalid form answer: {err}"}
+
+    registration = EventRegistration.objects.create(user=user, event=event, form_answer=data.form_answer)
 
     return {
         "message": "User successfully registered for the event",
@@ -96,6 +107,33 @@ def get_user_registrations(request):
     return registration_list
 
 
+@router.get("/{int:event_id}/registrations")
+def get_event_registrations(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+    registration_list = []
+    for registration in EventRegistration.objects.filter(event=event):
+        registration_list.append({
+            "id": registration.id,
+            "user_email": registration.user.email,
+            "user_first_name": registration.user.first_name,
+            "user_last_name": registration.user.last_name,
+            "registered_at": registration.registered_at,
+            "status": registration.status,
+            "form_answer": registration.form_answer,
+        })
+
+    return registration_list
+
+
 @router.get("/{int:event_id}")
 def get_event_details(request, event_id: int):
     user = request.user
@@ -117,6 +155,7 @@ def get_event_details(request, event_id: int):
         "id": event.id,
         "title": event.title,
         "description": event.description,
+        "form": event.form,
         "registration_start": event.registration_start,
         "registration_end": event.registration_end,
         "event_start": event.event_start,
@@ -127,7 +166,36 @@ def get_event_details(request, event_id: int):
     }
 
 
-# Event manager for organization members
+class ReviewRegistrationSchema(Schema):
+    status: str  # "approved" or "rejected"
+
+
+@router.post("/registrations/{int:registration_id}/review")
+def review_registration(request, registration_id: int, data: ReviewRegistrationSchema):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    if data.status not in (EventRegistration.Status.APPROVED, EventRegistration.Status.REJECTED):
+        return {"error": "Invalid status. Use 'approved' or 'rejected'"}
+
+    registration: EventRegistration = get_object_or_404(EventRegistration, id=registration_id)
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=registration.event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+
+    registration.status = data.status
+    registration.save()
+
+    return {
+        "message": "Registration status updated successfully",
+        "registration_id": registration.id,
+        "status": registration.status
+    }
+
+
 
 class CreateDraftEventSchema(Schema):
     organization_id: int
@@ -167,6 +235,8 @@ class UpdateDraftEventSchema(Schema):
     title: str
     description: str
 
+    form: list
+
     registration_start: str
     registration_end: str
 
@@ -202,8 +272,20 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
     except ValueError:
         return {"error": "Invalid date format. Use YYYY-MM-DDTHH:MM:SS."}
 
+    if registration_start >= registration_end:
+        return {"error": "Registration start date must be before registration end date"}
+    if registration_end > event_start:
+        return {"error": "Registration end date must be before event start date"}
+    if event_start >= event_end:
+        return {"error": "Event start date must be before event end date"}
+
+    is_valid, err = validate_form_schema(data.form)
+    if not is_valid:
+        return {"error": f"Invalid form schema: {err}"}
+
     event.title = data.title
     event.description = data.description
+    event.form = data.form
     event.registration_start = registration_start
     event.registration_end = registration_end
     event.event_start = event_start
@@ -241,3 +323,5 @@ def publish_event(request, event_id: int):
         "message": "Event published successfully",
         "event_id": event.id
     }
+
+
