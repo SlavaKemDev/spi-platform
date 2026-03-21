@@ -62,6 +62,21 @@
     }
   };
 
+  /* Read Django's csrftoken cookie */
+  Auth.csrfToken = function () {
+    var match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  };
+
+  /* Convenience POST with CSRF header pre-set */
+  Auth.post = function (url, body) {
+    return fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': Auth.csrfToken() },
+      body:    JSON.stringify(body),
+    });
+  };
+
   window.UniSphereAuth = Auth;
 
   /* Auto-init on every page that loads this script */

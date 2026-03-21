@@ -42,28 +42,32 @@
       <h1 class="org-name">{{ organizer.name }}</h1>
       <p class="org-tagline">{{ organizer.tagline }}</p>
 
-      <h2 class="org-section-title">О нас</h2>
+      <h2 class="org-section-title">Об организации</h2>
       <p class="org-desc">{{ organizer.desc }}</p>
 
-      <h2 class="org-section-title">Наша деятельность</h2>
+      {% if organizer.about %}
       <p class="org-desc">{{ organizer.about }}</p>
+      {% endif %}
 
       {% if organizer.events %}
       <h2 class="org-section-title">Мероприятия организатора</h2>
       <ul class="org-events-list">
         {% for ev in organizer.events %}
         <li>
-          <span class="org-event-emoji">{{ ev.emoji }}</span>
           {% if ev.event_id %}
-          <a href="/events/{{ ev.event_id }}/" style="text-decoration:none;color:inherit;flex:1">
-            <strong>{{ ev.title }}</strong><br>
-            <span style="font-size:.85rem;color:var(--muted)">{{ ev.date }}</span>
+          <a href="/events/{{ ev.event_id }}/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%">
+            <span class="org-event-emoji">{{ ev.emoji }}</span>
+            <div style="flex:1;min-width:0">
+              <strong>{{ ev.title }}</strong>
+              <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
+            </div>
           </a>
           {% else %}
-          <span>
-            <strong>{{ ev.title }}</strong><br>
-            <span style="font-size:.85rem;color:var(--muted)">{{ ev.date }}</span>
-          </span>
+          <span class="org-event-emoji">{{ ev.emoji }}</span>
+          <div style="flex:1;min-width:0">
+            <strong>{{ ev.title }}</strong>
+            <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
+          </div>
           {% endif %}
         </li>
         {% endfor %}
@@ -71,7 +75,7 @@
       {% endif %}
 
       <div class="org-actions">
-        <a href="javascript:history.back()" class="btn-back">← Назад</a>
+        <a href="/" class="btn-back">← К событиям</a>
       </div>
     </div>
 

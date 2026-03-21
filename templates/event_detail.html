@@ -69,13 +69,23 @@
         </div>
       </div>
 
+      <div class="detail-tags">
+        {% if event.format == "online" %}
+          <span class="card-tag card-tag-online">Онлайн</span>
+        {% elif event.format == "offline" %}
+          <span class="card-tag card-tag-offline">Оффлайн</span>
+        {% endif %}
+        <span id="eventStatusTag" style="display:none"></span>
+      </div>
+
       <p class="detail-desc">{{ event.desc }}</p>
 
       <div class="detail-actions">
         <a href="/" class="btn-back">← Назад к событиям</a>
-        <a href="/organizer/{{ event.id }}/" class="btn-organizer">🏢 Страница организатора</a>
-        <a href="#" class="btn-register">Зарегистрироваться</a>
+        <a href="/organizer/{{ event.id }}/" class="btn-organizer">🏢 {{ event.org }}</a>
+        <button class="btn-register" id="registerBtn">Зарегистрироваться</button>
       </div>
+      <p id="registerMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
     </div>
 
   </div>
@@ -83,5 +93,91 @@
 
 <script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
+<script>
+(function () {
+  var EVENT_ID = {{ event.id }};
+
+  var btn = document.getElementById('registerBtn');
+  var msg = document.getElementById('registerMsg');
+
+  var STATUS_LABELS = {
+    upcoming:            { text: 'Скоро',                cls: 'card-tag-open'    },
+    registration_open:   { text: 'Регистрация открыта',  cls: 'card-tag-open'    },
+    registration_closed: { text: 'Регистрация закрыта',  cls: 'card-tag-offline' },
+    ongoing:             { text: 'Идёт сейчас',          cls: 'card-tag-online'  },
+    past:                { text: 'Завершено',             cls: ''                 },
+  };
+
+  var REG_STATUS = { pending: 'На рассмотрении', approved: 'Подтверждён', rejected: 'Отклонён' };
+
+  function showMsg(text, ok) {
+    msg.textContent = text;
+    msg.style.color = ok ? '#16a34a' : '#b91c1c';
+    msg.style.display = 'block';
+  }
+
+  function checkRegistration() {
+    fetch('/api/events/' + EVENT_ID)
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        /* Status tag */
+        if (data.status && STATUS_LABELS[data.status]) {
+          var s = STATUS_LABELS[data.status];
+          var tag = document.getElementById('eventStatusTag');
+          tag.textContent = s.text;
+          tag.className = 'card-tag ' + s.cls;
+          tag.style.display = 'inline-block';
+        }
+
+        /* Disable register btn if not open */
+        if (data.status === 'past') {
+          btn.disabled = true; btn.textContent = 'Событие завершено';
+        } else if (data.status === 'registration_closed') {
+          btn.disabled = true; btn.textContent = 'Регистрация закрыта';
+        } else if (data.status === 'upcoming') {
+          btn.disabled = true; btn.textContent = 'Регистрация не открыта';
+        }
+
+        /* Already registered */
+        if (data.my_registration) {
+          btn.disabled = true;
+          btn.textContent = 'Вы зарегистрированы';
+          showMsg('Статус: ' + (REG_STATUS[data.my_registration.status] || data.my_registration.status), true);
+        }
+      })
+      .catch(function () { /* не авторизован — кнопка остаётся */ });
+  }
+
+  btn.addEventListener('click', function () {
+    var user = UniSphereAuth.getUser();
+    if (!user) {
+      window.location.href = '/auth/?next=/events/' + EVENT_ID + '/';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Регистрация...';
+
+    UniSphereAuth.post('/api/events/' + EVENT_ID + '/register', { form_answer: {} })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (res.ok || res.data.registration_id) {
+          btn.textContent = 'Вы зарегистрированы';
+          showMsg('Регистрация прошла успешно!', true);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Зарегистрироваться';
+          showMsg(res.data.error || 'Не удалось зарегистрироваться.', false);
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Зарегистрироваться';
+        showMsg('Ошибка соединения. Попробуйте позже.', false);
+      });
+  });
+
+  document.addEventListener('DOMContentLoaded', checkRegistration);
+}());
+</script>
 </body>
 </html>

@@ -36,6 +36,8 @@ def get_upcoming_events(request):
             "event_end": event.event_end,
             "location": event.location,
             "format": event.format,
+            "organization_id": event.organization_id,
+            "organization_name": event.organization.name,
         })
 
     return events_list
@@ -156,12 +158,15 @@ def get_event_details(request, event_id: int):
         "title": event.title,
         "description": event.description,
         "form": event.form,
+        "status": event.status,
         "registration_start": event.registration_start,
         "registration_end": event.registration_end,
         "event_start": event.event_start,
         "event_end": event.event_end,
         "location": event.location,
         "format": event.format,
+        "organization_id": event.organization_id,
+        "organization_name": event.organization.name,
         "my_registration": my_registration_dict
     }
 
