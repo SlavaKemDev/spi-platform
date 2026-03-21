@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Event(models.Model):
@@ -9,6 +10,8 @@ class Event(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название')
     description = models.TextField(verbose_name='Описание')
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
+
+    is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
@@ -26,6 +29,19 @@ class Event(models.Model):
     class Meta:
         verbose_name = 'Событие'
         verbose_name_plural = 'События'
+
+    @property
+    def status(self):
+        if timezone.now() < self.registration_start:
+            return "upcoming"
+        elif timezone.now() <= self.registration_end:
+            return "registration_open"
+        elif timezone.now() < self.event_start:
+            return "registration_closed"
+        elif timezone.now() <= self.event_end:
+            return "ongoing"
+        else:
+            return "past"
 
     def __str__(self):
         return self.title

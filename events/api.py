@@ -6,7 +6,7 @@ from ninja import Router, Schema
 from events.models import *
 from users.models import *
 
-router = Router(tags=["Users"])
+router = Router(tags=["Events"])
 
 
 @router.get("upcoming")
