@@ -92,3 +92,34 @@ def get_user_registrations(request):
         })
 
     return registration_list
+
+
+@router.get("{event_id}")
+def get_event_details(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    if EventRegistration.objects.filter(user=user, event=event).exists():
+        my_registration = EventRegistration.objects.get(user=user, event=event)
+        my_registration_dict = {
+            "registered_at": my_registration.registered_at,
+            "status": my_registration.status
+        }
+    else:
+        my_registration_dict = None
+
+    return {
+        "id": event.id,
+        "title": event.title,
+        "description": event.description,
+        "registration_start": event.registration_start,
+        "registration_end": event.registration_end,
+        "event_start": event.event_start,
+        "event_end": event.event_end,
+        "location": event.location,
+        "format": event.format,
+        "my_registration": my_registration_dict
+    }
