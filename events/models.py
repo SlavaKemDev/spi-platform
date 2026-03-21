@@ -57,6 +57,7 @@ class EventRegistration(models.Model):
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, verbose_name='Событие')
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, verbose_name='Пользователь')
+    form_answer = models.JSONField(default=dict, blank=True, verbose_name='Ответы на форму регистрации')
     registered_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата регистрации')
 
     status = models.CharField(
