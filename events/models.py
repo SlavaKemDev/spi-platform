@@ -31,11 +31,21 @@ class Event(models.Model):
 
 
 class EventRegistration(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Не рассмотрено'
+        APPROVED = 'approved', 'Одобрено'
+        REJECTED = 'rejected', 'Отклонено'
+
     event = models.ForeignKey(Event, on_delete=models.CASCADE, verbose_name='Событие')
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, verbose_name='Пользователь')
     registered_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата регистрации')
 
-    approved = models.BooleanField(default=False, verbose_name='Одобрено')
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name='Статус',
+    )
 
     def __str__(self):
         return f"{self.user.email} - {self.event.title}"
