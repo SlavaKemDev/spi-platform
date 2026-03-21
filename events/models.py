@@ -8,8 +8,13 @@ class Event(models.Model):
 
     title = models.CharField(max_length=255, verbose_name='Название')
     description = models.TextField(verbose_name='Описание')
-    date_start = models.DateTimeField(verbose_name='Дата начала')
-    date_end = models.DateTimeField(verbose_name='Дата окончания')
+
+    registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
+    registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
+
+    event_start = models.DateTimeField(verbose_name='Дата начала')
+    event_end = models.DateTimeField(verbose_name='Дата окончания')
+
     location = models.CharField(max_length=255, verbose_name='Место проведения')
     format = models.CharField(
         max_length=10,
