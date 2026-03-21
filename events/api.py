@@ -74,3 +74,21 @@ def unregister_from_event(request, event_id: int):
     registration.delete()
 
     return {"message": "User successfully unregistered from the event"}
+
+
+@router.get("registrations")
+def get_user_registrations(request):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    registration_list = []
+    for registration in EventRegistration.objects.filter(user=user):
+        registration_list.append({
+            "id": registration.event.id,
+            "title": registration.event.title,
+            "registered_at": registration.registered_at,
+            "status": registration.status
+        })
+
+    return registration_list
