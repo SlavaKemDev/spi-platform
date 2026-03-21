@@ -8,6 +8,8 @@ from events.models import *
 from organizations.models import OrganizationMember
 from users.models import *
 
+from .regform import validate_form_schema, validate_form_data
+
 router = Router(tags=["Events"])
 
 
@@ -39,8 +41,12 @@ def get_upcoming_events(request):
     return events_list
 
 
+class EventRegistrationSchema(Schema):
+    form_answer: dict
+
+
 @router.post("/{int:event_id}/register")
-def register_for_event(request, event_id: int):
+def register_for_event(request, event_id: int, data: EventRegistrationSchema):
     user = request.user
     if not user.is_authenticated:
         return {"error": "User is not authenticated"}
@@ -53,7 +59,12 @@ def register_for_event(request, event_id: int):
     if EventRegistration.objects.filter(user=user, event=event).exists():
         return {"error": "User is already registered for this event"}
 
-    registration = EventRegistration.objects.create(user=user, event=event)
+    is_valid, err = validate_form_data(data.form_answer, event.form)
+
+    if not is_valid:
+        return {"error": f"Invalid form answer: {err}"}
+
+    registration = EventRegistration.objects.create(user=user, event=event, form_answer=data.form_answer)
 
     return {
         "message": "User successfully registered for the event",
@@ -211,6 +222,10 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
         return {"error": "Registration end date must be before event start date"}
     if event_start >= event_end:
         return {"error": "Event start date must be before event end date"}
+
+    is_valid, err = validate_form_schema(data.form)
+    if not is_valid:
+        return {"error": f"Invalid form schema: {err}"}
 
     event.title = data.title
     event.description = data.description
