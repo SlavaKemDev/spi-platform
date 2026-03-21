@@ -1,0 +1,15 @@
+from ninja import NinjaAPI
+from ninja.renderers import JSONRenderer
+
+from users.api import router as users_router
+from events.api import router as events_router
+
+
+class UnicodeJSONRenderer(JSONRenderer):
+    json_dumps_params = {"ensure_ascii": False}
+
+
+api = NinjaAPI(title="СПИ API", version="1.0", renderer=UnicodeJSONRenderer())
+
+api.add_router("users/", users_router)
+api.add_router("events/", events_router)
