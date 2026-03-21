@@ -28,9 +28,12 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
 
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
-    patronymic = models.CharField(max_length=150)
+    first_name = models.CharField(max_length=150, verbose_name="Имя")
+    last_name = models.CharField(max_length=150, verbose_name="Фамилия")
+    patronymic = models.CharField(max_length=150, verbose_name="Отчество")
+
+    birth_date = models.DateField(verbose_name="Дата рождения", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
