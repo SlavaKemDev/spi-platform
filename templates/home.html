@@ -1,13 +1,248 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <script src="{% static 'js/tmp.js' %}"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniSphere — События</title>
+  <!-- Prevent flash on theme restore -->
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body>
-    <h1>My name is {{ email }}</h1>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
+  </a>
+
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Поиск событий...">
+    <button class="filter-btn" title="Фильтры">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6"  x2="20" y2="6"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+        <line x1="10" y1="18" x2="14" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+  <a href="/auth/" class="account-btn" title="Войти" id="accountBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></a>
+</header>
+
+<!-- ── Main ───────────────────────────────────────────── -->
+<main class="main">
+  <h2 class="section-title">События</h2>
+
+  <div class="carousel-outer">
+    <button class="carousel-arrow prev" aria-label="Назад">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <div class="carousel-clip">
+      <div class="carousel-track">
+
+        <!-- Welcome card -->
+        <article class="event-card welcome-card">
+          <div class="card-image-wrap"><div class="card-image">👋</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Добро пожаловать!</h3>
+            <p class="special-card-subtitle">Здесь собраны лучшие мероприятия для студентов и молодых специалистов. Пролистывайте и выбирайте события, которые вам интересны.</p>
+          </div>
+        </article>
+
+        <!-- Card 1 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🚀</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Хакатон по AI и машинному обучению</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                5 апреля 2026, 10:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Технопарк «Сколково», Москва
+              </span>
+            </div>
+            <p class="card-desc">48 часов разработки прорывных решений в области AI. Призовой фонд — 500 000 ₽. Приглашаем команды и одиночных участников.</p>
+            <a href="/events/1/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🎓</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Открытая лекция: Квантовые вычисления</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                12 апреля 2026, 18:30
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                МГУ, Главное здание, ауд. 12
+              </span>
+            </div>
+            <p class="card-desc">Профессор Алексей Иванов расскажет о последних достижениях квантовых вычислений и их применении в криптографии и оптимизации.</p>
+            <a href="/events/2/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">💼</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Карьерная ярмарка — IT &amp; Tech 2026</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                19 апреля 2026, 11:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Экспоцентр, Москва
+              </span>
+            </div>
+            <p class="card-desc">Встречайтесь с HR-специалистами топовых IT-компаний. Более 80 стендов, мастер-классы по резюме, mock-интервью с экспертами.</p>
+            <a href="/events/3/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 4 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🌐</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Митап: Web3 и децентрализованные приложения</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                24 апреля 2026, 19:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Онлайн (Zoom)
+              </span>
+            </div>
+            <p class="card-desc">Обсудим реальные кейсы внедрения dApp в финансах и логистике, разберём инструменты разработки смарт-контрактов.</p>
+            <a href="/events/4/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 5 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🎨</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Воркшоп по UX/UI Design Thinking</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                2 мая 2026, 10:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Дизайн-центр Artplay, Москва
+              </span>
+            </div>
+            <p class="card-desc">Практический интенсив по дизайн-мышлению. Пользовательские сценарии, прототипы и юзабилити-тесты за один день.</p>
+            <a href="/events/5/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 6 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">📊</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Конференция: Data Science в бизнесе</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                15 мая 2026, 9:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Digital October, Москва
+              </span>
+            </div>
+            <p class="card-desc">20+ докладов о применении data science в ритейле, банкинге и здравоохранении. Нетворкинг-сессии и afterparty.</p>
+            <a href="/events/6/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 7 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🔒</div></div>
+          <div class="card-body">
+            <h3 class="card-title">CTF: Соревнование по кибербезопасности</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                22 мая 2026, 12:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Онлайн
+              </span>
+            </div>
+            <p class="card-desc">Capture The Flag для студентов и молодых специалистов. Web, reverse, crypto, forensics. Лучшие команды попадут в финал.</p>
+            <a href="/events/7/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Card 8 -->
+        <article class="event-card">
+          <div class="card-image-wrap"><div class="card-image">🤝</div></div>
+          <div class="card-body">
+            <h3 class="card-title">StartUp Weekend: Питч-сессия стартапов</h3>
+            <div class="card-meta">
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                30 мая 2026, 14:00
+              </span>
+              <span class="card-meta-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                HubMoscow, Москва
+              </span>
+            </div>
+            <p class="card-desc">Три дня от идеи до MVP. Эксперты из венчурных фондов оценят ваши проекты. Победители получат инвестиции и место в акселераторе.</p>
+            <a href="/events/8/" class="card-btn">Подробнее</a>
+          </div>
+        </article>
+
+        <!-- Future card -->
+        <article class="event-card future-card">
+          <div class="card-image-wrap"><div class="card-image">🔮</div></div>
+          <div class="card-body">
+            <h3 class="card-title">Будет позднее...</h3>
+            <p class="special-card-subtitle">Новые события скоро появятся на платформе. Следите за обновлениями и не пропустите интересные мероприятия!</p>
+          </div>
+        </article>
+
+      </div><!-- .carousel-track -->
+    </div><!-- .carousel-clip -->
+
+    <button class="carousel-arrow next" aria-label="Вперёд">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>
+  </div><!-- .carousel-outer -->
+</main>
+
+<footer class="footer">
+  <a href="/about/">О нас</a>
+</footer>
+
+<script src="{% static 'js/carousel.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
 </body>
+</html>
