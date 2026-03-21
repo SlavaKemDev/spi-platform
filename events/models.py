@@ -8,6 +8,7 @@ class Event(models.Model):
 
     title = models.CharField(max_length=255, verbose_name='Название')
     description = models.TextField(verbose_name='Описание')
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
