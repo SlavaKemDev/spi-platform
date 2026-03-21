@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  /* ── Theme toggle ──────────────────────────────────────── */
+  /* ── Theme toggle (runs immediately, before DOMContentLoaded) ── */
   var themeBtn = document.getElementById('themeToggle');
   if (themeBtn) {
     var saved = localStorage.getItem('theme') || 'light';
@@ -17,84 +17,86 @@
     });
   }
 
-  /* ── Carousel ──────────────────────────────────────────── */
+  /* ── Carousel ──────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     var track   = document.querySelector('.carousel-track');
     var btnPrev = document.querySelector('.carousel-arrow.prev');
     var btnNext = document.querySelector('.carousel-arrow.next');
     var clip    = document.querySelector('.carousel-clip');
 
-    if (!track || !btnPrev || !btnNext) return;
+    if (!track || !btnPrev || !btnNext || !clip) return;
 
-    var cards        = Array.from(track.children);
-    var VISIBLE      = 3;
-    var GAP_PX       = 24;
-    var currentIndex = 0;
+    var cards   = Array.from(track.children);
+    var GAP_PX  = 24;
+    var pixelOffset = 0;
 
     function cardWidth() {
-      return cards[0].getBoundingClientRect().width;
+      return cards[0] ? cards[0].getBoundingClientRect().width : 0;
     }
 
-    function maxIndex() {
-      return Math.max(0, cards.length - VISIBLE);
+    function maxOffset() {
+      var cw = cardWidth();
+      if (!cw) return 0;
+      // total content width minus the visible viewport width
+      return Math.max(0, cards.length * (cw + GAP_PX) - GAP_PX - clip.offsetWidth);
     }
 
-    function updateTrack(animated) {
-      if (animated === false) {
-        track.style.transition = 'none';
-      } else {
-        track.style.transition = 'transform .4s cubic-bezier(.4,0,.2,1)';
-      }
-      var offset = currentIndex * (cardWidth() + GAP_PX);
-      track.style.transform = 'translateX(-' + offset + 'px)';
+    function applyOffset(offset, withTransition) {
+      pixelOffset = Math.max(0, Math.min(offset, maxOffset()));
+      track.style.transition = withTransition
+        ? 'transform .4s cubic-bezier(.4,0,.2,1)'
+        : 'none';
+      track.style.transform = 'translateX(-' + pixelOffset + 'px)';
+      updateArrows();
     }
 
-    function updateButtons() {
-      btnPrev.style.opacity       = currentIndex === 0 ? '0.3' : '1';
-      btnPrev.style.pointerEvents = currentIndex === 0 ? 'none' : 'auto';
-      btnNext.style.opacity       = currentIndex >= maxIndex() ? '0.3' : '1';
-      btnNext.style.pointerEvents = currentIndex >= maxIndex() ? 'none' : 'auto';
+    function updateArrows() {
+      var atStart = pixelOffset <= 1;
+      var atEnd   = pixelOffset >= maxOffset() - 1;
+      btnPrev.style.opacity       = atStart ? '0.3' : '1';
+      btnPrev.style.pointerEvents = atStart ? 'none' : 'auto';
+      btnNext.style.opacity       = atEnd   ? '0.3' : '1';
+      btnNext.style.pointerEvents = atEnd   ? 'none' : 'auto';
     }
 
-    function goTo(index) {
-      currentIndex = Math.max(0, Math.min(index, maxIndex()));
-      updateTrack();
-      updateButtons();
-    }
+    /* Arrow buttons: snap by one card with smooth transition */
+    btnPrev.addEventListener('click', function () {
+      var cw  = cardWidth() + GAP_PX;
+      var idx = Math.round(pixelOffset / cw);
+      applyOffset((idx - 1) * cw, true);
+    });
 
-    btnPrev.addEventListener('click', function () { goTo(currentIndex - 1); });
-    btnNext.addEventListener('click', function () { goTo(currentIndex + 1); });
+    btnNext.addEventListener('click', function () {
+      var cw  = cardWidth() + GAP_PX;
+      var idx = Math.round(pixelOffset / cw);
+      applyOffset((idx + 1) * cw, true);
+    });
 
-    /* ── Wheel / trackpad scroll ─────────────────────────── */
-    var wheelDebounce = null;
+    /* ── Wheel / trackpad: continuous smooth pixel scroll ────── */
+    clip.addEventListener('wheel', function (e) {
+      var dx = e.deltaX;
+      var dy = e.deltaY;
 
-    if (clip) {
-      clip.addEventListener('wheel', function (e) {
-        // Only intercept when the scroll is more horizontal than vertical,
-        // OR user is scrolling vertically directly over the carousel.
-        var absX = Math.abs(e.deltaX);
-        var absY = Math.abs(e.deltaY);
+      // Use whichever axis has larger magnitude; vertical wheel → horizontal scroll
+      var delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
 
-        // For a vertical wheel over the carousel, take over horizontally.
-        if (absY > 0 || absX > 0) {
-          e.preventDefault();
+      if (delta === 0) return;
 
-          clearTimeout(wheelDebounce);
-          wheelDebounce = setTimeout(function () {
-            var delta = absX >= absY ? e.deltaX : e.deltaY;
-            if (delta > 0) {
-              goTo(currentIndex + 1);
-            } else if (delta < 0) {
-              goTo(currentIndex - 1);
-            }
-          }, 50);
-        }
-      }, { passive: false });
-    }
+      e.preventDefault(); // stop page scroll while over carousel
 
-    /* ── Resize ──────────────────────────────────────────── */
-    window.addEventListener('resize', function () { updateTrack(false); });
+      // deltaMode 0 = pixels (trackpad), 1 = lines (~20px), 2 = pages (~200px)
+      var px = delta * (e.deltaMode === 0 ? 1 : e.deltaMode === 1 ? 20 : 200);
 
-    goTo(0);
+      // Apply directly, no CSS transition → immediate / native-feeling movement
+      applyOffset(pixelOffset + px, false);
+    }, { passive: false });
+
+    /* Recalculate on resize */
+    window.addEventListener('resize', function () {
+      applyOffset(pixelOffset, false);
+    });
+
+    applyOffset(0, false);
   });
+
 }());

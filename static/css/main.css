@@ -56,27 +56,15 @@ html, body {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  background: var(--accent-l);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  padding: 7px 14px;
-  transition: background .2s, border-color .2s;
+  padding: 4px 8px;
 }
-.logo:hover { border-color: var(--accent); }
+.logo:hover { opacity: .8; }
 
 .logo-icon {
   width: 36px;
   height: 36px;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-.logo-text {
-  font-size: .95rem;
-  font-weight: 700;
-  color: var(--accent);
-  white-space: nowrap;
-  line-height: 1.25;
 }
 
 .search-wrap {
