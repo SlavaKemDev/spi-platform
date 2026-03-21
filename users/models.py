@@ -25,6 +25,14 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+class University(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Название университета")
+    email_domain = models.CharField(max_length=255, verbose_name="Домен почты университета")
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
 
@@ -34,6 +42,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     birth_date = models.DateField(verbose_name="Дата рождения")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    university = models.ForeignKey(University, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Университет")
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
