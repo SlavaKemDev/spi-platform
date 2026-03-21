@@ -1,0 +1,348 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPI Platform — Вход</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    .auth-wrap {
+      min-height: calc(100vh - 70px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .auth-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      transition: background .25s, border-color .25s;
+    }
+
+    .auth-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .auth-form { display: flex; flex-direction: column; gap: 16px; }
+
+    .auth-field { display: flex; flex-direction: column; gap: 6px; }
+
+    .auth-label {
+      font-size: .88rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .auth-input {
+      height: 42px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: .95rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color .2s, background .25s;
+      font-family: inherit;
+    }
+    .auth-input:focus { border-color: var(--accent); background: var(--card-bg); }
+
+    .auth-btn {
+      margin-top: 4px;
+      height: 44px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .15s;
+      font-family: inherit;
+    }
+    .auth-btn:hover { background: #0d6b8a; transform: translateY(-1px); }
+    .auth-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .auth-switch {
+      text-align: center;
+      font-size: .88rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .auth-switch a {
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .auth-switch a:hover { text-decoration: underline; }
+
+    .auth-error {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .88rem;
+      display: none;
+    }
+    [data-theme="dark"] .auth-error { background: #3f0f0f; color: #f87171; }
+
+    .auth-success {
+      background: #d1fae5;
+      color: #065f46;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .88rem;
+      display: none;
+    }
+    [data-theme="dark"] .auth-success { background: #052e16; color: #34d399; }
+
+    /* Hide inactive form */
+    .auth-form-section { display: none; }
+    .auth-form-section.active { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="SPI Platform">
+  </a>
+  <div class="search-wrap"></div>
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+</header>
+
+<!-- ── Auth ───────────────────────────────────────────── -->
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <!-- LOGIN SECTION -->
+    <div class="auth-form-section active" id="loginSection">
+      <h1 class="auth-title">Добро пожаловать</h1>
+      <div class="auth-error" id="loginError"></div>
+      <div class="auth-success" id="loginSuccess"></div>
+      <form class="auth-form" id="loginForm" novalidate>
+        <div class="auth-field">
+          <label class="auth-label" for="loginEmail">Почта</label>
+          <input class="auth-input" type="email" id="loginEmail" name="email" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="loginPassword">Пароль</label>
+          <input class="auth-input" type="password" id="loginPassword" name="password" required autocomplete="current-password">
+        </div>
+        <button class="auth-btn" type="submit" id="loginBtn">Войти</button>
+      </form>
+      <p class="auth-switch">Нет аккаунта? <a id="toRegister">Зарегистрироваться</a></p>
+    </div>
+
+    <!-- REGISTER SECTION -->
+    <div class="auth-form-section" id="registerSection">
+      <h1 class="auth-title">Создать аккаунт</h1>
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-success" id="registerSuccess"></div>
+      <form class="auth-form" id="registerForm" novalidate>
+        <div class="auth-field">
+          <label class="auth-label" for="lastName">Фамилия</label>
+          <input class="auth-input" type="text" id="lastName" name="last_name" required>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="firstName">Имя</label>
+          <input class="auth-input" type="text" id="firstName" name="first_name" required>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="patronymic">Отчество</label>
+          <input class="auth-input" type="text" id="patronymic" name="patronymic">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="birthDate">Дата рождения</label>
+          <input class="auth-input" type="date" id="birthDate" name="birth_date" required>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regEmail">Почта</label>
+          <input class="auth-input" type="email" id="regEmail" name="email" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regPassword">Пароль</label>
+          <input class="auth-input" type="password" id="regPassword" name="password" required autocomplete="new-password">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regPasswordConfirm">Подтверждение пароля</label>
+          <input class="auth-input" type="password" id="regPasswordConfirm" name="password_confirm" required autocomplete="new-password">
+        </div>
+        <button class="auth-btn" type="submit" id="registerBtn">Зарегистрироваться</button>
+      </form>
+      <p class="auth-switch">Есть аккаунт? <a id="toLogin">Войти</a></p>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="/about">О нас</a>
+</footer>
+
+<script>
+  // ── Theme toggle ────────────────────────────────────────
+  const themeBtn = document.getElementById('themeToggle');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('theme', t);
+  }
+  applyTheme(localStorage.getItem('theme') || 'light');
+  themeBtn.addEventListener('click', () => {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  // ── Tab switching ───────────────────────────────────────
+  const loginSection    = document.getElementById('loginSection');
+  const registerSection = document.getElementById('registerSection');
+
+  document.getElementById('toRegister').addEventListener('click', () => {
+    loginSection.classList.remove('active');
+    registerSection.classList.add('active');
+    clearMessages();
+  });
+  document.getElementById('toLogin').addEventListener('click', () => {
+    registerSection.classList.remove('active');
+    loginSection.classList.add('active');
+    clearMessages();
+  });
+
+  // Check URL hash on load
+  if (window.location.hash === '#register') {
+    loginSection.classList.remove('active');
+    registerSection.classList.add('active');
+  }
+
+  function clearMessages() {
+    ['loginError','loginSuccess','registerError','registerSuccess'].forEach(id => {
+      const el = document.getElementById(id);
+      el.style.display = 'none';
+      el.textContent = '';
+    });
+  }
+
+  function showMsg(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function parseError(data, status) {
+    if (data.error) return data.error;
+    if (data.detail) {
+      if (Array.isArray(data.detail)) return data.detail.map(e => e.msg).join(', ');
+      return data.detail;
+    }
+    return 'Ошибка ' + status;
+  }
+
+  // ── Login ───────────────────────────────────────────────
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearMessages();
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = 'Вход...';
+
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.status === 404) {
+        showMsg('loginError', 'Неверный email или пароль.');
+      } else {
+        const data = await res.json();
+        if (data.success) {
+          showMsg('loginSuccess', 'Вы успешно вошли! Перенаправляем...');
+          setTimeout(() => { window.location.href = '/'; }, 800);
+        } else {
+          showMsg('loginError', parseError(data, res.status));
+        }
+      }
+    } catch {
+      showMsg('loginError', 'Ошибка соединения с сервером.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Войти';
+    }
+  });
+
+  // ── Register ────────────────────────────────────────────
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearMessages();
+
+    const password        = document.getElementById('regPassword').value;
+    const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+    if (password !== passwordConfirm) {
+      showMsg('registerError', 'Пароли не совпадают.');
+      return;
+    }
+
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.textContent = 'Регистрация...';
+
+    const payload = {
+      last_name:  document.getElementById('lastName').value.trim(),
+      first_name: document.getElementById('firstName').value.trim(),
+      patronymic: document.getElementById('patronymic').value.trim() || '',
+      birth_date: document.getElementById('birthDate').value,
+      email:      document.getElementById('regEmail').value.trim(),
+      password,
+    };
+
+    if (!payload.last_name || !payload.first_name || !payload.birth_date || !payload.email || !payload.password) {
+      showMsg('registerError', 'Пожалуйста, заполните все обязательные поля.');
+      btn.disabled = false;
+      btn.textContent = 'Зарегистрироваться';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showMsg('registerSuccess', 'Аккаунт создан! Перенаправляем...');
+        setTimeout(() => { window.location.href = '/'; }, 800);
+      } else {
+        showMsg('registerError', parseError(data, res.status));
+      }
+    } catch {
+      showMsg('registerError', 'Ошибка соединения с сервером.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Зарегистрироваться';
+    }
+  });
+</script>
+</body>
+</html>

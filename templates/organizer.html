@@ -29,7 +29,7 @@
     </button>
   </div>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
-  <button class="account-btn" title="Аккаунт">Акк</button>
+  <a href="/auth/" class="account-btn" title="Аккаунт" id="accountBtn">Акк</a>
 </header>
 
 <!-- ── Organizer Page ──────────────────────────────────── -->
@@ -72,5 +72,10 @@
 </div>
 
 <script src="{% static 'js/carousel.js' %}"></script>
+<script>
+  fetch('/api/users/me').then(r=>r.json()).then(d=>{
+    if(d.id){const b=document.getElementById('accountBtn');b.textContent=(d.first_name?d.first_name[0]:'')+(d.last_name?d.last_name[0]:'');}
+  }).catch(()=>{});
+</script>
 </body>
 </html>

@@ -32,7 +32,7 @@
   </div>
 
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
-  <button class="account-btn" title="Аккаунт">Акк</button>
+  <a href="/auth/" class="account-btn" title="Аккаунт" id="accountBtn">Акк</a>
 </header>
 
 <!-- ── Main ───────────────────────────────────────────── -->
@@ -243,5 +243,15 @@
 </footer>
 
 <script src="{% static 'js/carousel.js' %}"></script>
+<script>
+  fetch('/api/users/me').then(r=>r.json()).then(d=>{
+    if(d.id){
+      const btn=document.getElementById('accountBtn');
+      const initials=(d.first_name?d.first_name[0]:'')+(d.last_name?d.last_name[0]:'');
+      btn.textContent=initials||'Акк';
+      btn.title=d.first_name+' '+d.last_name;
+    }
+  }).catch(()=>{});
+</script>
 </body>
 </html>

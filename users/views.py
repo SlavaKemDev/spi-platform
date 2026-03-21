@@ -11,3 +11,7 @@ def user_profile(request):
         'email': user.email,
     }
     return render(request, 'home.html', context)
+
+
+def auth_page(request):
+    return render(request, 'auth.html')
