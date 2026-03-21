@@ -776,6 +776,12 @@ html, body {
 .status-pending    { color: var(--accent); font-weight: 600; }
 [data-theme="dark"] .status-registered { color: #4ade80; }
 
+.profile-empty-text {
+  font-size: .88rem;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
 .profile-browse-link {
   display: block;
   margin-top: 14px;

@@ -47,8 +47,7 @@
       <div class="profile-info">
         <h1 class="profile-name" id="profileName">Загрузка...</h1>
         <p class="profile-email-text" id="profileEmail"></p>
-        <span class="profile-demo-badge" id="demoBadge">Демо-режим</span>
-      </div>
+        </div>
       <div class="profile-actions">
         <a href="/" class="btn-back">← На главную</a>
         <button class="profile-logout-btn" id="logoutBtn">Выйти</button>
@@ -62,46 +61,14 @@
     <!-- My events -->
     <div class="profile-card">
       <h2 class="profile-card-title">📅 Мои события</h2>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🚀</span>
-        <div>
-          <a href="/events/1/" class="profile-event-link">Хакатон по AI и машинному обучению</a>
-          <div class="profile-event-meta">5–7 апреля 2026 &middot; <span class="status-registered">Зарегистрирован</span></div>
-        </div>
-      </div>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🎨</span>
-        <div>
-          <a href="/events/5/" class="profile-event-link">Воркшоп по UX/UI Design Thinking</a>
-          <div class="profile-event-meta">2 мая 2026 &middot; <span class="status-pending">В обработке</span></div>
-        </div>
-      </div>
-
+      <p class="profile-empty-text">Вы ещё не зарегистрированы ни на одно событие.</p>
       <a href="/" class="profile-browse-link">Найти новые события →</a>
     </div>
 
     <!-- Favorites -->
     <div class="profile-card">
       <h2 class="profile-card-title">❤️ Избранное</h2>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">📊</span>
-        <div>
-          <a href="/events/6/" class="profile-event-link">Конференция: Data Science в бизнесе</a>
-          <div class="profile-event-meta">15 мая 2026</div>
-        </div>
-      </div>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🔒</span>
-        <div>
-          <a href="/events/7/" class="profile-event-link">CTF: Соревнование по кибербезопасности</a>
-          <div class="profile-event-meta">22–23 мая 2026</div>
-        </div>
-      </div>
-
+      <p class="profile-empty-text">Избранных событий пока нет.</p>
       <a href="/" class="profile-browse-link">Обзор всех событий →</a>
     </div>
 
@@ -130,73 +97,70 @@
     </div>
     <div class="profile-settings-footer">
       <button class="card-btn" id="saveSettingsBtn">Сохранить изменения</button>
-      <p class="profile-settings-note">Изменения сохраняются локально. Синхронизация с сервером будет доступна после подключения серверной авторизации.</p>
+      <p class="profile-settings-note">Редактирование профиля будет доступно в следующей версии.</p>
     </div>
   </div>
 
 </div><!-- .profile-wrap -->
 
-<script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
 
-  /* ── Bind buttons (always, regardless of auth source) ── */
-  document.getElementById('logoutBtn').addEventListener('click', function () {
-    UniSphereAuth.clearUser();
-    fetch('/api/users/logout', { method: 'POST' }).catch(function () {});
-    window.location.href = '/';
+  /* ── Theme ── */
+  var themeBtn = document.getElementById('themeToggle');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('theme', t);
+  }
+  applyTheme(localStorage.getItem('theme') || 'light');
+  themeBtn.addEventListener('click', function () {
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
+  /* ── Render profile ── */
+  function renderProfile(user) {
+    document.getElementById('profileLoading').style.display = 'none';
+    document.getElementById('profileWrap').style.display    = 'flex';
+
+    var fn   = user.first_name || '';
+    var ln   = user.last_name  || '';
+    var name = [fn, ln].filter(Boolean).join(' ') || user.email || 'Пользователь';
+    var ini  = ((fn ? fn[0].toUpperCase() : '') + (ln ? ln[0].toUpperCase() : '')) || (user.email ? user.email[0].toUpperCase() : '?');
+
+    document.getElementById('profileAvatar').textContent = ini;
+    document.getElementById('profileName').textContent   = name;
+    document.getElementById('profileEmail').textContent  = user.email || '';
+    document.getElementById('accountBtn').textContent    = ini;
+    document.getElementById('settingFirstName').value    = fn;
+    document.getElementById('settingLastName').value     = ln;
+    document.getElementById('settingEmail').value        = user.email || '';
+  }
+
+  /* ── Auth check ── */
+  fetch('/api/users/me')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.id) { renderProfile(d); }
+      else           { window.location.replace('/auth/'); }
+    })
+    .catch(function () { window.location.replace('/auth/'); });
+
+  /* ── Logout ── */
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    fetch('/api/users/logout', { method: 'POST' })
+      .finally(function () { window.location.href = '/'; });
+  });
+
+  /* ── Save settings (display only, no API yet) ── */
   document.getElementById('saveSettingsBtn').addEventListener('click', function () {
-    var u = UniSphereAuth.getUser();
-    if (!u) return;
-    u.first_name = document.getElementById('settingFirstName').value.trim();
-    u.last_name  = document.getElementById('settingLastName').value.trim();
-    UniSphereAuth.setUser(u);
-    renderProfile(u);
     var btn = this;
     btn.textContent = '✓ Сохранено';
     setTimeout(function () { btn.textContent = 'Сохранить изменения'; }, 2000);
   });
 
-  /* ── Render profile from user object ──────────────────── */
-  function renderProfile(user) {
-    document.getElementById('profileLoading').style.display = 'none';
-    document.getElementById('profileWrap').style.display  = 'flex';
-
-    var fn  = user.first_name || '';
-    var ln  = user.last_name  || '';
-    var name = [fn, ln].filter(Boolean).join(' ') || user.email || 'Пользователь';
-    var ini  = UniSphereAuth.initials(user);
-
-    document.getElementById('profileAvatar').textContent   = ini;
-    document.getElementById('profileName').textContent     = name;
-    document.getElementById('profileEmail').textContent    = user.email || '';
-    document.getElementById('accountBtn').textContent      = ini;
-    document.getElementById('settingFirstName').value      = fn;
-    document.getElementById('settingLastName').value       = ln;
-    document.getElementById('settingEmail').value          = user.email || '';
-
-    if (user.is_demo) {
-      document.getElementById('demoBadge').style.display = 'inline-block';
-    }
-  }
-
-  /* ── Auth check ───────────────────────────────────────── */
-  var user = UniSphereAuth.getUser();
-  if (user) { renderProfile(user); return; }
-
-  /* Not in sessionStorage → try real API */
-  fetch('/api/users/me')
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-    .then(function (d) {
-      if (d && d.id) { UniSphereAuth.setUser(d); renderProfile(d); }
-      else { window.location.href = '/auth/'; }
-    })
-    .catch(function () { window.location.href = '/auth/'; });
-
-});
+}());
 </script>
 </body>
 </html>

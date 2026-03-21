@@ -6,23 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UniSphere — Вход</title>
   <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
-  <!-- Early redirect if already logged in (prevents form flash) -->
-  <script>
-    try {
-      if (sessionStorage.getItem('us_user')) { window.location.replace('/profile/'); }
-    } catch(e) {}
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
   <style>
     .auth-page-wrap {
-      height: calc(100vh - 65px);
+      min-height: calc(100vh - 65px);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 12px 20px;
+      padding: 36px 20px 48px;
     }
 
     .auth-card {
@@ -42,7 +36,7 @@
       border: 1.5px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
     .auth-tab {
       flex: 1;
@@ -57,17 +51,14 @@
       font-family: inherit;
       transition: background .2s, color .2s;
     }
-    .auth-tab.active {
-      background: var(--accent);
-      color: #fff;
-    }
+    .auth-tab.active { background: var(--accent); color: #fff; }
     .auth-tab:not(.active):hover { background: var(--accent-l); color: var(--accent); }
 
-    /* ── Form ─────────────────────────────────── */
+    /* ── Form sections ────────────────────────── */
     .auth-section { display: none; }
     .auth-section.active { display: block; }
 
-    .auth-form { display: flex; flex-direction: column; gap: 12px; }
+    .auth-form { display: flex; flex-direction: column; gap: 11px; }
     .auth-field { display: flex; flex-direction: column; gap: 4px; }
     .auth-label { font-size: .82rem; color: var(--text); font-weight: 500; }
 
@@ -87,8 +78,10 @@
     }
     .auth-input:focus { border-color: var(--accent); background: var(--card-bg); }
 
+    .auth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
     .auth-btn {
-      margin-top: 4px;
+      margin-top: 6px;
       height: 40px;
       background: var(--accent);
       color: #fff;
@@ -110,25 +103,26 @@
       font-size: .85rem;
       display: none;
       margin-bottom: 4px;
+      line-height: 1.4;
     }
-    .auth-msg.error  { background: #fee2e2; color: #b91c1c; }
+    .auth-msg.error   { background: #fee2e2; color: #b91c1c; }
     .auth-msg.success { background: #d1fae5; color: #065f46; }
-    [data-theme="dark"] .auth-msg.error  { background: #3f0f0f; color: #f87171; }
+    [data-theme="dark"] .auth-msg.error   { background: #3f0f0f; color: #f87171; }
     [data-theme="dark"] .auth-msg.success { background: #052e16; color: #34d399; }
 
-    /* ── Demo notice ──────────────────────────── */
-    .auth-demo-notice {
-      font-size: .75rem;
-      color: var(--muted);
+    .auth-hint {
       text-align: center;
+      font-size: .82rem;
+      color: var(--muted);
       margin-top: 10px;
     }
-    .auth-demo-notice a {
+    .auth-hint a {
       color: var(--accent);
       text-decoration: none;
       cursor: pointer;
+      font-weight: 500;
     }
-    .auth-demo-notice a:hover { text-decoration: underline; }
+    .auth-hint a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -168,51 +162,60 @@
         </div>
         <button class="auth-btn" type="submit" id="loginBtn">Войти</button>
       </form>
-      <p class="auth-demo-notice">
-        Нет аккаунта?
-        <a id="loginToRegister">Зарегистрироваться</a>
-        &nbsp;·&nbsp;
-        <a id="loginDemo">Войти как гость</a>
-      </p>
+      <p class="auth-hint">Нет аккаунта? <a id="loginToRegister">Зарегистрироваться</a></p>
     </div>
 
     <!-- ── REGISTER ──────────────────────────── -->
     <div class="auth-section" id="registerSection">
       <div class="auth-msg" id="registerMsg"></div>
       <form class="auth-form" id="registerForm" novalidate>
-        <div class="auth-field">
-          <label class="auth-label" for="regName">Имя</label>
-          <input class="auth-input" type="text" id="regName" name="first_name"
-                 required autocomplete="given-name" placeholder="Иван">
+        <div class="auth-row">
+          <div class="auth-field">
+            <label class="auth-label" for="regLastName">Фамилия *</label>
+            <input class="auth-input" type="text" id="regLastName" name="last_name"
+                   required autocomplete="family-name" placeholder="Иванов">
+          </div>
+          <div class="auth-field">
+            <label class="auth-label" for="regFirstName">Имя *</label>
+            <input class="auth-input" type="text" id="regFirstName" name="first_name"
+                   required autocomplete="given-name" placeholder="Иван">
+          </div>
         </div>
         <div class="auth-field">
-          <label class="auth-label" for="regEmail">Email</label>
+          <label class="auth-label" for="regPatronymic">Отчество *</label>
+          <input class="auth-input" type="text" id="regPatronymic" name="patronymic"
+                 required autocomplete="additional-name" placeholder="Иванович">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regBirthDate">Дата рождения *</label>
+          <input class="auth-input" type="date" id="regBirthDate" name="birth_date" required>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regEmail">Email *</label>
           <input class="auth-input" type="email" id="regEmail" name="email"
                  required autocomplete="email" placeholder="you@example.com">
         </div>
         <div class="auth-field">
-          <label class="auth-label" for="regPassword">Пароль</label>
+          <label class="auth-label" for="regPassword">Пароль *</label>
           <input class="auth-input" type="password" id="regPassword" name="password"
                  required autocomplete="new-password" placeholder="Минимум 6 символов">
         </div>
         <div class="auth-field">
-          <label class="auth-label" for="regConfirm">Подтверждение пароля</label>
+          <label class="auth-label" for="regConfirm">Подтверждение пароля *</label>
           <input class="auth-input" type="password" id="regConfirm" name="password_confirm"
                  required autocomplete="new-password" placeholder="Повторите пароль">
         </div>
         <button class="auth-btn" type="submit" id="registerBtn">Создать аккаунт</button>
       </form>
-      <p class="auth-demo-notice">
-        Уже есть аккаунт? <a id="registerToLogin">Войти</a>
-      </p>
+      <p class="auth-hint">Уже есть аккаунт? <a id="registerToLogin">Войти</a></p>
     </div>
 
   </div>
 </div>
 
-<script src="{% static 'js/auth.js' %}"></script>
 <script>
 (function () {
+
   /* ── Theme ──────────────────────────────────────────── */
   var themeBtn = document.getElementById('themeToggle');
   function applyTheme(t) {
@@ -225,6 +228,12 @@
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
+  /* ── Redirect if already authenticated ─────────────── */
+  fetch('/api/users/me')
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.id) { window.location.replace('/profile/'); } })
+    .catch(function () {});
+
   /* ── Tab switching ──────────────────────────────────── */
   var loginSection    = document.getElementById('loginSection');
   var registerSection = document.getElementById('registerSection');
@@ -232,25 +241,19 @@
   var tabRegister     = document.getElementById('tabRegister');
 
   function showTab(tab) {
-    if (tab === 'login') {
-      loginSection.classList.add('active');
-      registerSection.classList.remove('active');
-      tabLogin.classList.add('active');
-      tabRegister.classList.remove('active');
-    } else {
-      registerSection.classList.add('active');
-      loginSection.classList.remove('active');
-      tabRegister.classList.add('active');
-      tabLogin.classList.remove('active');
-    }
+    var isLogin = tab === 'login';
+    loginSection.classList.toggle('active', isLogin);
+    registerSection.classList.toggle('active', !isLogin);
+    tabLogin.classList.toggle('active', isLogin);
+    tabRegister.classList.toggle('active', !isLogin);
     clearMsg('loginMsg');
     clearMsg('registerMsg');
   }
 
-  tabLogin.addEventListener('click', function ()    { showTab('login'); });
+  tabLogin.addEventListener('click',    function () { showTab('login'); });
   tabRegister.addEventListener('click', function () { showTab('register'); });
-  document.getElementById('loginToRegister').addEventListener('click', function () { showTab('register'); });
-  document.getElementById('registerToLogin').addEventListener('click', function () { showTab('login'); });
+  document.getElementById('loginToRegister').addEventListener('click',  function () { showTab('register'); });
+  document.getElementById('registerToLogin').addEventListener('click',  function () { showTab('login'); });
 
   if (window.location.hash === '#register') { showTab('register'); }
 
@@ -266,85 +269,47 @@
     el.style.display = 'none';
     el.textContent = '';
   }
-  function parseApiError(data, status) {
+  function parseError(data, status) {
     if (data && data.error)  return data.error;
     if (data && data.detail) {
-      if (Array.isArray(data.detail)) return data.detail.map(function(e){return e.msg;}).join(', ');
+      if (Array.isArray(data.detail)) return data.detail.map(function (e) { return e.msg; }).join('; ');
       return data.detail;
     }
-    return 'Ошибка ' + status;
+    return 'Ошибка ' + (status || '');
   }
-
-  /* ── Redirect after auth ────────────────────────────── */
-  function redirectToProfile() {
-    window.location.href = '/profile/';
-  }
-
-  /* ── Demo / guest login ─────────────────────────────── */
-  function startDemoSession(name, email) {
-    UniSphereAuth.setUser({
-      id:         'demo_' + Date.now(),
-      first_name: name  || 'Гость',
-      last_name:  '',
-      email:      email || 'demo@unisphere.ru',
-      is_demo:    true,
-    });
-    redirectToProfile();
-  }
-
-  document.getElementById('loginDemo').addEventListener('click', function () {
-    startDemoSession('Гость', 'demo@unisphere.ru');
-  });
 
   /* ── LOGIN ──────────────────────────────────────────── */
   document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     clearMsg('loginMsg');
-    var btn   = document.getElementById('loginBtn');
+
     var email = document.getElementById('loginEmail').value.trim();
     var pass  = document.getElementById('loginPassword').value;
 
-    if (!email || !pass) {
-      showMsg('loginMsg', 'Введите email и пароль.');
-      return;
-    }
+    if (!email || !pass) { showMsg('loginMsg', 'Введите email и пароль.'); return; }
 
+    var btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.textContent = 'Вход...';
 
     try {
-      var res = await fetch('/api/users/login', {
+      var res  = await fetch('/api/users/login', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email: email, password: pass }),
       });
-
-      if (res.status === 404 || res.status === 401) {
-        showMsg('loginMsg', 'Неверный email или пароль.');
-        return;
-      }
-
       var data = await res.json();
 
-      if (data.success || data.id) {
-        /* Real login succeeded — fetch full profile */
-        try {
-          var me = await fetch('/api/users/me');
-          var user = await me.json();
-          UniSphereAuth.setUser(user);
-        } catch (_) {
-          UniSphereAuth.setUser({ email: email, first_name: email.split('@')[0], last_name: '', id: data.id || 1 });
-        }
-        showMsg('loginMsg', 'Успешный вход! Перенаправляем...', 'success');
-        setTimeout(redirectToProfile, 700);
+      if (res.status === 404) {
+        showMsg('loginMsg', 'Пользователь с таким email не найден.');
+      } else if (data.success) {
+        showMsg('loginMsg', 'Вы вошли! Перенаправляем...', 'success');
+        setTimeout(function () { window.location.href = '/profile/'; }, 600);
       } else {
-        showMsg('loginMsg', parseApiError(data, res.status));
+        showMsg('loginMsg', parseError(data, res.status));
       }
-
     } catch (_) {
-      /* Network error — fall back to demo session */
-      showMsg('loginMsg', 'Сервер недоступен. Создаём демо-сессию...', 'success');
-      setTimeout(function () { startDemoSession(email.split('@')[0], email); }, 800);
+      showMsg('loginMsg', 'Ошибка соединения с сервером. Попробуйте позже.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Войти';
@@ -356,56 +321,49 @@
     e.preventDefault();
     clearMsg('registerMsg');
 
-    var name     = document.getElementById('regName').value.trim();
-    var email    = document.getElementById('regEmail').value.trim();
-    var pass     = document.getElementById('regPassword').value;
-    var confirm  = document.getElementById('regConfirm').value;
+    var lastName   = document.getElementById('regLastName').value.trim();
+    var firstName  = document.getElementById('regFirstName').value.trim();
+    var patronymic = document.getElementById('regPatronymic').value.trim();
+    var birthDate  = document.getElementById('regBirthDate').value;
+    var email      = document.getElementById('regEmail').value.trim();
+    var pass       = document.getElementById('regPassword').value;
+    var confirm    = document.getElementById('regConfirm').value;
 
     /* Front-end validation */
-    if (!name)              { showMsg('registerMsg', 'Введите ваше имя.');           return; }
-    if (!email)             { showMsg('registerMsg', 'Введите email.');              return; }
-    if (pass.length < 6)    { showMsg('registerMsg', 'Пароль минимум 6 символов.');  return; }
-    if (pass !== confirm)   { showMsg('registerMsg', 'Пароли не совпадают.');        return; }
+    if (!lastName || !firstName || !patronymic || !birthDate || !email || !pass) {
+      showMsg('registerMsg', 'Пожалуйста, заполните все обязательные поля.');
+      return;
+    }
+    if (pass.length < 6) { showMsg('registerMsg', 'Пароль должен содержать минимум 6 символов.'); return; }
+    if (pass !== confirm) { showMsg('registerMsg', 'Пароли не совпадают.'); return; }
 
     var btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.textContent = 'Регистрация...';
 
-    /* Send to real API (extra fields set to defaults for compatibility) */
-    var payload = {
-      first_name: name,
-      last_name:  '',
-      patronymic: '',
-      birth_date: '2000-01-01',
-      email:      email,
-      password:   pass,
-    };
-
     try {
       var res  = await fetch('/api/users/register', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
+        body:    JSON.stringify({
+          last_name:  lastName,
+          first_name: firstName,
+          patronymic: patronymic,
+          birth_date: birthDate,
+          email:      email,
+          password:   pass,
+        }),
       });
       var data = await res.json();
 
-      if (data.success || data.id) {
-        UniSphereAuth.setUser({
-          id:         data.id || 1,
-          first_name: name,
-          last_name:  '',
-          email:      email,
-        });
+      if (data.success) {
         showMsg('registerMsg', 'Аккаунт создан! Перенаправляем...', 'success');
-        setTimeout(redirectToProfile, 700);
+        setTimeout(function () { window.location.href = '/profile/'; }, 600);
       } else {
-        showMsg('registerMsg', parseApiError(data, res.status));
+        showMsg('registerMsg', parseError(data, res.status));
       }
-
     } catch (_) {
-      /* Network error — demo session */
-      showMsg('registerMsg', 'Сервер недоступен. Создаём демо-аккаунт...', 'success');
-      setTimeout(function () { startDemoSession(name, email); }, 800);
+      showMsg('registerMsg', 'Ошибка соединения с сервером. Попробуйте позже.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Создать аккаунт';
