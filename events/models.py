@@ -23,3 +23,19 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class EventRegistration(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, verbose_name='Событие')
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, verbose_name='Пользователь')
+    registered_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата регистрации')
+
+    approved = models.BooleanField(default=False, verbose_name='Одобрено')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.event.title}"
+
+    class Meta:
+        verbose_name = 'Регистрация на событие'
+        verbose_name_plural = 'Регистрации на события'
+        unique_together = ('event', 'user')
