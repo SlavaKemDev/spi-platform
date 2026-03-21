@@ -32,7 +32,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=150, verbose_name="Фамилия")
     patronymic = models.CharField(max_length=150, verbose_name="Отчество")
 
-    birth_date = models.DateField(verbose_name="Дата рождения", null=True, blank=True)
+    birth_date = models.DateField(verbose_name="Дата рождения")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     is_active = models.BooleanField(default=True)
@@ -41,7 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'patronymic']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'patronymic', 'birth_date']
 
     def __str__(self):
         return self.email
