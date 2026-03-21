@@ -107,6 +107,33 @@ def get_user_registrations(request):
     return registration_list
 
 
+@router.get("/{int:event_id}/registrations")
+def get_event_registrations(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+    registration_list = []
+    for registration in EventRegistration.objects.filter(event=event):
+        registration_list.append({
+            "id": registration.id,
+            "user_email": registration.user.email,
+            "user_first_name": registration.user.first_name,
+            "user_last_name": registration.user.last_name,
+            "registered_at": registration.registered_at,
+            "status": registration.status,
+            "form_answer": registration.form_answer,
+        })
+
+    return registration_list
+
+
 @router.get("/{int:event_id}")
 def get_event_details(request, event_id: int):
     user = request.user
