@@ -1,4 +1,5 @@
-from datetime import date, datetime
+from django.utils import timezone
+from datetime import datetime
 
 from django.contrib.auth import login
 from ninja import Router, Schema
