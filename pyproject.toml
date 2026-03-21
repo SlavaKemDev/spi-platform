@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "spi-platform"
+version = "0.1.0"
+description = ""
+authors = ["Вячеслав Чертан <slavakemdev@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.135.1"
+uvicorn = "^0.42.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
