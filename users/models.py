@@ -32,6 +32,10 @@ class University(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "Университет"
+        verbose_name_plural = "Университеты"
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, verbose_name='Email')
