@@ -130,7 +130,13 @@ def _read_generic_form(url: str) -> dict:
     html_content = str(main_form)
 
     llm = LLM()
-    return llm.ask_json(PROMPT.format(url=url, html=html_content))
+    result = llm.ask_json(PROMPT.format(url=url, html=html_content))
+
+    # Detect platform for prefill_url
+    if "tilda.ws" in url or "tilda.cc" in url or "t396" in html:
+        result["_platform"] = "tilda"
+
+    return result
 
 
 def read_form(url: str) -> dict:
