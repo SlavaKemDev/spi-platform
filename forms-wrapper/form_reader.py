@@ -75,7 +75,10 @@ def _read_google_form(url: str) -> dict:
     for field in fields_raw:
         title = field[1]
         field_type_id = field[3]
-        entries = field[4]
+        entries = field[4] if len(field) > 4 else None
+
+        if not entries:
+            continue
 
         for entry in entries:
             entry_id = f"entry.{entry[0]}"
