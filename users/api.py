@@ -20,6 +20,11 @@ class UserRegistrationSchema(Schema):
     birth_date: str
 
 
+class UserLoginSchema(Schema):
+    email: str
+    password: str
+
+
 @router.post("register")
 def register(request, data: UserRegistrationSchema):
     if User.objects.filter(email=data.email).exists():
@@ -45,6 +50,25 @@ def register(request, data: UserRegistrationSchema):
     return {
         "success": True,
         "message": "User registered successfully",
+        "user": {
+            "id": user.id,
+            "email": user.email
+        }
+    }
+
+
+@router.post("login")
+def login_view(request, data: UserLoginSchema):
+    user = get_object_or_404(User, email=data.email)
+
+    if not user.check_password(data.password):
+        return {"error": "Invalid credentials"}
+
+    login(request, user)
+
+    return {
+        "success": True,
+        "message": "User logged in successfully",
         "user": {
             "id": user.id,
             "email": user.email
