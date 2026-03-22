@@ -5,6 +5,8 @@ from typing import Optional
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
+from swipes.ml import SwipeML
+
 from events.models import *
 from organizations.models import OrganizationMember
 from users.models import *
@@ -415,6 +417,7 @@ def publish_event(request, event_id: int):
         return {"error": "Cannot publish: external form is not attached"}
 
     event.is_published = True
+    event.embedding = SwipeML.get_embeddings(event.full_text)
     event.save()
 
     return {
