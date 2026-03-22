@@ -26,8 +26,11 @@
 
     if (!track || !btnPrev || !btnNext || !clip) return;
 
-    var GAP_PX  = 24;
     var pixelOffset = 0;
+
+    function gapPx() {
+      return parseFloat(window.getComputedStyle(track).columnGap) || 24;
+    }
 
     function cards() { return Array.from(track.children); }
 
@@ -42,7 +45,7 @@
       var numCards = cards().length;
       var cs = window.getComputedStyle(clip);
       var padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      return Math.max(0, numCards * (cw + GAP_PX) - GAP_PX - clip.offsetWidth + padH);
+      return Math.max(0, numCards * (cw + gapPx()) - gapPx() - clip.offsetWidth + padH);
     }
 
     function applyOffset(offset, withTransition) {
@@ -65,13 +68,13 @@
 
     /* Arrow buttons: snap by one card with smooth transition */
     btnPrev.addEventListener('click', function () {
-      var cw  = cardWidth() + GAP_PX;
+      var cw  = cardWidth() + gapPx();
       var idx = Math.round(pixelOffset / cw);
       applyOffset((idx - 1) * cw, true);
     });
 
     btnNext.addEventListener('click', function () {
-      var cw  = cardWidth() + GAP_PX;
+      var cw  = cardWidth() + gapPx();
       var idx = Math.round(pixelOffset / cw);
       applyOffset((idx + 1) * cw, true);
     });
