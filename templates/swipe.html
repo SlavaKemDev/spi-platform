@@ -1,0 +1,500 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Свайп-режим — UniSphere</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    body { margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+    .swipe-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; background: var(--card-bg); border-bottom: 1.5px solid var(--border);
+      flex-shrink: 0; z-index: 10;
+    }
+    .swipe-header .logo { display: flex; align-items: center; text-decoration: none; }
+    .swipe-header .logo-icon { height: 32px; }
+    .swipe-header-actions { display: flex; gap: 8px; align-items: center; }
+
+    .swipe-arena {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; position: relative; overflow: hidden;
+      padding: 20px;
+    }
+
+    /* Card stack */
+    .swipe-card-container {
+      position: relative; width: 100%; max-width: 420px; height: 520px;
+    }
+    @media (max-height: 700px) { .swipe-card-container { height: 440px; } }
+    @media (max-width: 480px) { .swipe-card-container { max-width: 340px; height: 480px; } }
+
+    .swipe-card {
+      position: absolute; inset: 0; background: var(--card-bg);
+      border: 1.5px solid var(--border); border-radius: 24px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+      display: flex; flex-direction: column; overflow: hidden;
+      transition: box-shadow .3s;
+      will-change: transform, opacity;
+      user-select: none;
+    }
+    .swipe-card.swiping { transition: none; }
+    .swipe-card.like-glow { box-shadow: 0 0 50px rgba(34,197,94,.5), 0 0 100px rgba(34,197,94,.2); }
+    .swipe-card.dislike-glow { box-shadow: 0 0 50px rgba(239,68,68,.5), 0 0 100px rgba(239,68,68,.2); }
+
+    /* Glow ghost — stays in place while card falls */
+    .swipe-glow-ghost {
+      position: absolute; inset: 0; border-radius: 24px; pointer-events: none;
+      z-index: 1; opacity: 1;
+      transition: opacity .6s ease .2s;
+    }
+    .swipe-glow-ghost.fade { opacity: 0; }
+
+    .swipe-card-image {
+      height: 140px; display: flex; align-items: center; justify-content: center;
+      font-size: 3.5rem; background: linear-gradient(135deg, var(--accent-l) 0%, var(--bg) 100%);
+      flex-shrink: 0;
+    }
+
+    .swipe-card-body {
+      flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px;
+      overflow-y: auto;
+    }
+    .swipe-card-title {
+      font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 0;
+      line-height: 1.3;
+    }
+    .swipe-card-meta {
+      display: flex; flex-direction: column; gap: 6px; font-size: .85rem; color: var(--muted);
+    }
+    .swipe-card-meta-row {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .swipe-card-meta-row svg {
+      width: 16px; height: 16px; stroke: var(--muted); flex-shrink: 0;
+    }
+    .swipe-card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .swipe-card-desc {
+      font-size: .88rem; color: var(--text); line-height: 1.5; opacity: .85;
+      flex: 1;
+    }
+    .swipe-card-detail {
+      display: inline-block; font-size: .85rem; font-weight: 600; color: var(--accent);
+      text-decoration: none; margin-top: auto; padding-top: 4px;
+    }
+    .swipe-card-detail:hover { text-decoration: underline; }
+
+    /* Overlay stamps */
+    .stamp {
+      position: absolute; top: 40px; padding: 8px 20px; font-size: 1.8rem; font-weight: 800;
+      letter-spacing: 3px; border: 4px solid; border-radius: 12px; transform: rotate(-15deg);
+      opacity: 0; transition: opacity .15s; pointer-events: none; text-transform: uppercase;
+      z-index: 5;
+    }
+    .stamp-like { right: 20px; color: #22c55e; border-color: #22c55e; transform: rotate(-15deg); }
+    .stamp-nope { left: 20px; color: #ef4444; border-color: #ef4444; transform: rotate(15deg); }
+
+    /* Action buttons */
+    .swipe-actions {
+      display: flex; gap: 24px; margin-top: 24px; flex-shrink: 0;
+    }
+    .swipe-btn {
+      width: 64px; height: 64px; border-radius: 50%; border: 2.5px solid var(--border);
+      background: var(--card-bg); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform .15s, border-color .2s, box-shadow .2s;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .swipe-btn:hover { transform: scale(1.1); }
+    .swipe-btn:active { transform: scale(.95); }
+    .swipe-btn svg { width: 28px; height: 28px; }
+    .swipe-btn-dislike { border-color: #fca5a5; }
+    .swipe-btn-dislike:hover { border-color: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,.2); }
+    .swipe-btn-dislike svg { stroke: #ef4444; fill: none; }
+    .swipe-btn-like { border-color: #86efac; }
+    .swipe-btn-like:hover { border-color: #22c55e; box-shadow: 0 0 20px rgba(34,197,94,.2); }
+    .swipe-btn-like svg { stroke: #22c55e; fill: none; }
+
+    /* Counter */
+    .swipe-counter {
+      margin-top: 14px; font-size: .82rem; color: var(--muted); flex-shrink: 0;
+    }
+
+    /* Empty state */
+    .swipe-empty {
+      text-align: center; display: flex; flex-direction: column; align-items: center;
+      gap: 16px; animation: fadeIn .5s ease;
+    }
+    .swipe-empty-emoji { font-size: 4rem; }
+    .swipe-empty-title { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+    .swipe-empty-text { font-size: .92rem; color: var(--muted); max-width: 300px; }
+    .swipe-empty-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+    /* Next card peek */
+    .swipe-card-next {
+      transform: scale(.95) translateY(12px);
+      opacity: .5; z-index: 0;
+      transition: transform .35s ease, opacity .35s ease;
+    }
+    .swipe-card-current { z-index: 2; }
+    .swipe-card-next.promote {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+    @keyframes cardIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+    .card-enter { animation: cardIn .35s ease forwards; }
+  </style>
+</head>
+<body>
+
+<div class="swipe-header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
+  </a>
+  <div class="swipe-header-actions">
+    <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+    <a href="/auth/" class="account-btn" title="Войти" id="accountBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></a>
+  </div>
+</div>
+
+<div class="swipe-arena" id="swipeArena">
+  <div class="swipe-card-container" id="cardContainer"></div>
+  <div class="swipe-actions" id="swipeActions">
+    <button class="swipe-btn swipe-btn-dislike" id="btnDislike" title="Не интересно">
+      <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <button class="swipe-btn swipe-btn-like" id="btnLike" title="Нравится">
+      <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="swipe-counter" id="swipeCounter"></div>
+</div>
+
+<script src="{% static 'js/carousel.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
+<script>
+(function () {
+  var CALENDAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+  var PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var FORMAT_ICONS = { online: '💻', offline: '📍', hybrid: '🔀' };
+  var FORMAT_LABELS = { online: 'Онлайн', offline: 'Оффлайн' };
+
+  var currentSwipe = null;   // { id, status, event: {...} }
+  var ratePromise = null;    // pending rate request
+  var busy = false;
+  var swipeCount = 0;
+
+  var container = document.getElementById('cardContainer');
+  var actions = document.getElementById('swipeActions');
+  var counter = document.getElementById('swipeCounter');
+  var arena = document.getElementById('swipeArena');
+
+  function getCookie(name) {
+    var m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+    return m ? m[2] : '';
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function buildCardHTML(ev) {
+    var icon = FORMAT_ICONS[ev.format] || '📅';
+    var dateStr = formatDate(ev.event_start);
+    var desc = (ev.description || '').slice(0, 180);
+    if ((ev.description || '').length > 180) desc += '...';
+    var tagClass = ev.format === 'online' ? 'card-tag-online' : 'card-tag-offline';
+
+    return '<div class="swipe-card-image">' + icon + '</div>'
+      + '<div class="swipe-card-body">'
+      + '<h3 class="swipe-card-title">' + esc(ev.title) + '</h3>'
+      + '<div class="swipe-card-meta">'
+      + (dateStr ? '<div class="swipe-card-meta-row">' + CALENDAR_SVG + '<span>' + esc(dateStr) + '</span></div>' : '')
+      + (ev.location ? '<div class="swipe-card-meta-row">' + PIN_SVG + '<span>' + esc(ev.location) + '</span></div>' : '')
+      + '</div>'
+      + '<div class="swipe-card-tags">'
+      + (ev.format ? '<span class="card-tag ' + tagClass + '">' + (FORMAT_LABELS[ev.format] || ev.format) + '</span>' : '')
+      + '</div>'
+      + (desc ? '<p class="swipe-card-desc">' + esc(desc) + '</p>' : '')
+      + '<a href="/events/' + ev.id + '/" class="swipe-card-detail" onclick="event.stopPropagation()">Подробнее →</a>'
+      + '</div>'
+      + '<div class="stamp stamp-like">Like</div>'
+      + '<div class="stamp stamp-nope">Nope</div>';
+  }
+
+  function updateCounter() {
+    counter.textContent = swipeCount > 0 ? 'Просмотрено: ' + swipeCount : '';
+  }
+
+  /* ── API calls ─────────────────────────────────────── */
+  function fetchNewSwipe() {
+    return fetch('/api/swipes/new', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      credentials: 'same-origin'
+    }).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) return null;
+      return r.json();
+    }).catch(function () { return null; });
+  }
+
+  function rateSwipe(swipeId, status) {
+    return fetch('/api/swipes/' + swipeId + '/rate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ status: status })
+    }).then(function (r) { return r.json(); })
+      .catch(function () { return null; });
+  }
+
+  /* ── Show states ───────────────────────────────────── */
+  function showEmpty() {
+    container.innerHTML = '';
+    actions.style.display = 'none';
+    counter.textContent = '';
+
+    var existing = arena.querySelector('.swipe-empty');
+    if (existing) existing.remove();
+
+    var empty = document.createElement('div');
+    empty.className = 'swipe-empty';
+    empty.innerHTML =
+      '<div class="swipe-empty-emoji">✨</div>'
+      + '<div class="swipe-empty-title">Пока больше нет событий</div>'
+      + '<div class="swipe-empty-text">Вы просмотрели все доступные события. Возвращайтесь позже!</div>'
+      + '<div class="swipe-empty-actions">'
+      + '<a href="/" class="btn-back" style="padding:10px 24px">← На главную</a>'
+      + '</div>';
+    container.parentNode.insertBefore(empty, container);
+  }
+
+  function showLogin() {
+    container.innerHTML = '';
+    actions.style.display = 'none';
+    counter.textContent = '';
+
+    var msg = document.createElement('div');
+    msg.className = 'swipe-empty';
+    msg.innerHTML =
+      '<div class="swipe-empty-emoji">🔒</div>'
+      + '<div class="swipe-empty-title">Войдите, чтобы свайпать</div>'
+      + '<div class="swipe-empty-text">Для персональных рекомендаций нужна авторизация</div>'
+      + '<div class="swipe-empty-actions">'
+      + '<a href="/auth/" class="btn-register" style="padding:10px 24px">Войти</a>'
+      + '</div>';
+    container.parentNode.insertBefore(msg, container);
+  }
+
+  function showLoading() {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.95rem;">Загрузка...</div>';
+  }
+
+  /* ── Render card ───────────────────────────────────── */
+  function renderCard() {
+    container.innerHTML = '';
+    if (!currentSwipe) { showEmpty(); return; }
+    actions.style.display = 'flex';
+    updateCounter();
+
+    // Current card (on top)
+    var card = document.createElement('div');
+    card.className = 'swipe-card swipe-card-current card-enter';
+    card.id = 'currentCard';
+    card.innerHTML = buildCardHTML(currentSwipe.event);
+    container.appendChild(card);
+
+    setupDrag(card);
+  }
+
+  /* ── Drag / touch support ─────────────────────────── */
+  function setupDrag(card) {
+    var startX = 0, startY = 0, dx = 0, dragging = false;
+
+    function onStart(e) {
+      if (busy) return;
+      if (e.target.closest('.swipe-card-detail')) return;
+      dragging = true;
+      card.classList.add('swiping');
+      var pt = e.touches ? e.touches[0] : e;
+      startX = pt.clientX; startY = pt.clientY;
+      dx = 0;
+    }
+    function onMove(e) {
+      if (!dragging) return;
+      var pt = e.touches ? e.touches[0] : e;
+      dx = pt.clientX - startX;
+      var rotate = dx * 0.06;
+      card.style.transform = 'rotate(' + rotate + 'deg) translateY(' + (Math.abs(dx) * 0.15) + 'px)';
+      card.style.transformOrigin = dx > 0 ? 'right bottom' : 'left bottom';
+
+      var likeStamp = card.querySelector('.stamp-like');
+      var nopeStamp = card.querySelector('.stamp-nope');
+      var pct = Math.min(Math.abs(dx) / 120, 1);
+      if (dx > 0) {
+        likeStamp.style.opacity = pct;
+        nopeStamp.style.opacity = 0;
+        card.style.boxShadow = '0 0 ' + (50 * pct) + 'px rgba(34,197,94,' + (0.5 * pct) + ')';
+      } else if (dx < 0) {
+        nopeStamp.style.opacity = pct;
+        likeStamp.style.opacity = 0;
+        card.style.boxShadow = '0 0 ' + (50 * pct) + 'px rgba(239,68,68,' + (0.5 * pct) + ')';
+      }
+    }
+    function onEnd() {
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove('swiping');
+      if (Math.abs(dx) > 80) {
+        animateOut(dx > 0 ? 'right' : 'left');
+      } else {
+        card.style.transition = 'transform .35s ease, box-shadow .35s ease';
+        card.style.transform = '';
+        card.style.boxShadow = '';
+        card.querySelector('.stamp-like').style.opacity = 0;
+        card.querySelector('.stamp-nope').style.opacity = 0;
+        setTimeout(function () { card.style.transition = ''; }, 350);
+      }
+    }
+
+    card.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    card.addEventListener('touchstart', onStart, { passive: true });
+    card.addEventListener('touchmove', onMove, { passive: true });
+    card.addEventListener('touchend', onEnd);
+
+    card._cleanup = function () {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+    };
+  }
+
+  /* ── Arc-falling animation via requestAnimationFrame ── */
+  function animateOut(dir) {
+    if (busy) return;
+    busy = true;
+    var card = document.getElementById('currentCard');
+    if (!card) { busy = false; return; }
+
+    var isRight = dir === 'right';
+    var rateStatus = isRight ? 'like' : 'dislike';
+
+    // Send rating to API immediately, save promise
+    ratePromise = rateSwipe(currentSwipe.id, rateStatus);
+
+    // Show stamp
+    card.querySelector('.stamp-like').style.opacity = isRight ? 1 : 0;
+    card.querySelector('.stamp-nope').style.opacity = isRight ? 0 : 1;
+
+    // Add glow to card
+    card.classList.add(isRight ? 'like-glow' : 'dislike-glow');
+
+    // Create glow ghost that stays in place
+    var ghost = document.createElement('div');
+    ghost.className = 'swipe-glow-ghost';
+    ghost.style.boxShadow = isRight
+      ? '0 0 60px rgba(34,197,94,.5), 0 0 120px rgba(34,197,94,.2)'
+      : '0 0 60px rgba(239,68,68,.5), 0 0 120px rgba(239,68,68,.2)';
+    container.insertBefore(ghost, card);
+
+    if (card._cleanup) card._cleanup();
+
+    // Arc animation params
+    var sign = isRight ? 1 : -1;
+    var origin = isRight ? 'right bottom' : 'left bottom';
+    card.style.transformOrigin = origin;
+    card.classList.add('swiping');
+
+    var duration = 600;
+    var maxAngle = 75;
+    var start = null;
+
+    function tick(ts) {
+      if (!start) start = ts;
+      var elapsed = ts - start;
+      var t = Math.min(elapsed / duration, 1);
+
+      var ease = t * t * (3 - 2 * t);
+      var angle = sign * maxAngle * ease;
+      var opacity = 1 - Math.pow(t, 1.5);
+
+      card.style.transform = 'rotate(' + angle + 'deg)';
+      card.style.opacity = Math.max(0, opacity);
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        ghost.classList.add('fade');
+        setTimeout(function () {
+          ghost.remove();
+          swipeCount++;
+          // Wait for rate to finish, THEN fetch next card
+          ratePromise.then(function () {
+            return fetchNewSwipe();
+          }).then(function (s) {
+            currentSwipe = s;
+            busy = false;
+            if (currentSwipe) {
+              renderCard();
+            } else {
+              showEmpty();
+            }
+          });
+        }, 500);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ── Button clicks ────────────────────────────────── */
+  document.getElementById('btnLike').addEventListener('click', function () { animateOut('right'); });
+  document.getElementById('btnDislike').addEventListener('click', function () { animateOut('left'); });
+
+  /* ── Keyboard shortcuts ───────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'l') animateOut('right');
+    if (e.key === 'ArrowLeft' || e.key === 'h') animateOut('left');
+  });
+
+  /* ── Init: fetch first card from API ───────────────── */
+  showLoading();
+  fetchNewSwipe().then(function (swipe) {
+    if (!swipe) {
+      // Check if it's auth issue or no events
+      fetch('/api/users/me', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) { showLogin(); }
+          else { showEmpty(); }
+        })
+        .catch(function () { showLogin(); });
+      return;
+    }
+    currentSwipe = swipe;
+    renderCard();
+  });
+}());
+</script>
+</body>
+</html>

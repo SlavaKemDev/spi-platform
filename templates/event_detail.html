@@ -18,16 +18,7 @@
   <a href="/" class="logo">
     <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
-  <div class="search-wrap">
-    <input class="search-input" type="text" placeholder="Поиск событий...">
-    <button class="filter-btn" title="Фильтры">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="6"  x2="20" y2="6"/>
-        <line x1="8" y1="12" x2="16" y2="12"/>
-        <line x1="10" y1="18" x2="14" y2="18"/>
-      </svg>
-    </button>
-  </div>
+  <a href="/swipe/" class="swipe-banner" title="Свайп-режим">Посвайпаем?</a>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
   <a href="/auth/" class="account-btn" title="Войти" id="accountBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></a>
 </header>
@@ -91,18 +82,46 @@
   </div>
 </div>
 
-<!-- ── Registration modal ──────────────────────────────── -->
+<!-- ── Registration modal (extra fields + confirmation) ── -->
 <div id="regModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:var(--card-bg);border-radius:20px;padding:32px 28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
-    <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:20px;color:var(--text)">Регистрация на событие</h2>
-    <div id="regFormFields" style="display:flex;flex-direction:column;gap:14px;"></div>
-    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
-      <button class="btn-register" id="regSubmitBtn">Подтвердить</button>
-      <button class="btn-back" id="regCancelBtn">Отмена</button>
+  <div style="background:var(--card-bg);border-radius:20px;padding:32px 28px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h2 id="regModalTitle" style="font-size:1.2rem;font-weight:700;margin-bottom:20px;color:var(--text)">Регистрация на событие</h2>
+
+    <!-- Step 1: Extra fields form (shown only if there are extra fields) -->
+    <div id="regStepFields" style="display:none">
+      <div id="regFormFields" style="display:flex;flex-direction:column;gap:14px;"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <button class="btn-register" id="regNextBtn">Далее</button>
+        <button class="btn-back" id="regCancelBtn1">Отмена</button>
+      </div>
     </div>
+
+    <!-- Step 2: Confirmation review -->
+    <div id="regStepConfirm" style="display:none">
+      <div id="regConfirmList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <button class="btn-register" id="regSubmitBtn">Отправить</button>
+        <button class="btn-back" id="regBackBtn" style="display:none">Назад</button>
+        <button class="btn-back" id="regCancelBtn2">Отмена</button>
+      </div>
+    </div>
+
     <p id="regModalMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
   </div>
 </div>
+<style>
+  .confirm-row { display:flex; flex-direction:column; gap:4px; padding:10px 12px; border-radius:8px; background:var(--bg); }
+  .confirm-label { font-size:.82rem; font-weight:600; color:var(--muted); }
+  .confirm-label .req-star { color:#b91c1c; margin-left:2px; }
+  .confirm-input {
+    border:1.5px solid var(--border); border-radius:6px; padding:7px 10px;
+    font-size:.9rem; color:var(--text); background:var(--card-bg); font-family:inherit;
+    outline:none; width:100%; box-sizing:border-box;
+  }
+  .confirm-input:focus { border-color:var(--accent); }
+  .confirm-input.field-error { border-color:#b91c1c; background:#fff5f5; }
+  [data-theme="dark"] .confirm-input.field-error { background:#2a0a0a; }
+</style>
 
 <script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
@@ -125,8 +144,20 @@
 
   var REG_STATUS = { pending: 'На рассмотрении', approved: 'Подтверждён', rejected: 'Отклонён' };
 
+  var PROFILE_NAMES = {
+    first_name:1, last_name:1, email:1, patronymic:1, birth_date:1,
+    university:1, faculty:1, course:1
+  };
+  var FIELD_LABELS = {
+    first_name: 'Имя', last_name: 'Фамилия', email: 'Почта',
+    patronymic: 'Отчество', birth_date: 'Дата рождения',
+    university: 'ВУЗ', faculty: 'Факультет', course: 'Курс'
+  };
+
   var eventForm = [];
   var currentUser = null;
+  var isExternal = false;
+  var pendingAnswer = null; // full answer being confirmed
 
   fetch('/api/users/me')
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
@@ -139,11 +170,14 @@
     msg.style.display = 'block';
   }
 
+  function closeModal() { modal.style.display = 'none'; }
+
   function checkRegistration() {
     fetch('/api/events/' + EVENT_ID)
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (data) {
         eventForm = Array.isArray(data.form) ? data.form : [];
+        isExternal = !!data.is_external;
 
         if (data.status && STATUS_LABELS[data.status]) {
           var s = STATUS_LABELS[data.status];
@@ -170,7 +204,7 @@
       .catch(function () {});
   }
 
-  /* ── Modal ──────────────────────────────────────────── */
+  /* ── Build form for extra fields ────────────────────── */
   function buildModalForm(fields) {
     var container = document.getElementById('regFormFields');
     container.innerHTML = '';
@@ -233,6 +267,137 @@
     return answer;
   }
 
+  /* ── Build profile answer from user data ────────────── */
+  function buildProfileAnswer() {
+    var answer = {};
+    eventForm.forEach(function (f) {
+      if (PROFILE_NAMES[f.name] && currentUser && currentUser[f.name]) {
+        answer[f.name] = currentUser[f.name];
+      }
+    });
+    return answer;
+  }
+
+  /* ── Show confirmation step ─────────────────────────── */
+  function showConfirmation(fullAnswer, hasExtraFields) {
+    pendingAnswer = fullAnswer;
+
+    var list = document.getElementById('regConfirmList');
+    list.innerHTML = '';
+
+    // Show all fields in the form schema as editable inputs
+    eventForm.forEach(function (f) {
+      var val = fullAnswer[f.name];
+      var label = FIELD_LABELS[f.name] || f.label || f.name;
+
+      var row = document.createElement('div');
+      row.className = 'confirm-row';
+
+      var labelEl = document.createElement('span');
+      labelEl.className = 'confirm-label';
+      labelEl.innerHTML = escHtml(label) + (f.required ? '<span class="req-star">*</span>' : '');
+
+      var input;
+      if (f.type === 'checkbox') {
+        var cbWrap = document.createElement('label');
+        cbWrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer;';
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = !!val;
+        input.dataset.confirmName = f.name;
+        input.dataset.confirmType = 'checkbox';
+        cbWrap.appendChild(input);
+        cbWrap.appendChild(document.createTextNode(label));
+        row.appendChild(cbWrap);
+      } else if (f.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.className = 'confirm-input';
+        input.value = val || '';
+        input.dataset.confirmName = f.name;
+        input.dataset.confirmType = f.type;
+        input.style.minHeight = '60px';
+        input.style.resize = 'vertical';
+        row.appendChild(labelEl);
+        row.appendChild(input);
+      } else if (f.type === 'select') {
+        input = document.createElement('select');
+        input.className = 'confirm-input';
+        input.dataset.confirmName = f.name;
+        input.dataset.confirmType = f.type;
+        (f.options || []).forEach(function (opt) {
+          var o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          if (opt === val) o.selected = true;
+          input.appendChild(o);
+        });
+        row.appendChild(labelEl);
+        row.appendChild(input);
+      } else {
+        input = document.createElement('input');
+        input.type = f.type === 'number' ? 'number' : 'text';
+        input.className = 'confirm-input';
+        input.value = (val !== undefined && val !== null) ? val : '';
+        input.dataset.confirmName = f.name;
+        input.dataset.confirmType = f.type;
+        row.appendChild(labelEl);
+        row.appendChild(input);
+      }
+
+      // Clear error on input
+      if (input) {
+        input.addEventListener('input', function () { this.classList.remove('field-error'); });
+      }
+
+      list.appendChild(row);
+    });
+
+    document.getElementById('regStepFields').style.display = 'none';
+    document.getElementById('regStepConfirm').style.display = 'block';
+    document.getElementById('regBackBtn').style.display = hasExtraFields ? 'inline-block' : 'none';
+    document.getElementById('regSubmitBtn').disabled = false;
+    document.getElementById('regSubmitBtn').textContent = 'Отправить';
+    document.getElementById('regModalTitle').textContent = 'Проверьте данные';
+    modalMsg.style.display = 'none';
+  }
+
+  /* ── Collect answer from confirmation form ──────────── */
+  function collectConfirmAnswer() {
+    var answer = {};
+    var inputs = document.getElementById('regConfirmList').querySelectorAll('[data-confirm-name]');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var name = el.dataset.confirmName;
+      var type = el.dataset.confirmType;
+      if (type === 'checkbox') answer[name] = el.checked;
+      else if (type === 'number') answer[name] = el.value !== '' ? Number(el.value) : '';
+      else answer[name] = el.value;
+    }
+    return answer;
+  }
+
+  /* ── Validate required fields in confirmation form ──── */
+  function validateConfirmForm() {
+    var valid = true;
+    eventForm.forEach(function (f) {
+      if (!f.required) return;
+      var el = document.getElementById('regConfirmList').querySelector('[data-confirm-name="' + f.name + '"]');
+      if (!el) return;
+      var val = (f.type === 'checkbox') ? el.checked : el.value;
+      if (val === undefined || val === null || val === '' || val === false) {
+        el.classList.add('field-error');
+        valid = false;
+      }
+    });
+    return valid;
+  }
+
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s));
+    return d.innerHTML;
+  }
+
+  /* ── Submit registration ────────────────────────────── */
   function submitRegistration(formAnswer) {
     var submitBtn = document.getElementById('regSubmitBtn');
     submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
@@ -242,7 +407,7 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (res.data.registration_id) {
-          modal.style.display = 'none';
+          closeModal();
           btn.disabled = true;
           btn.textContent = 'Вы зарегистрированы';
           showMsg('Регистрация прошла успешно!', true);
@@ -250,59 +415,77 @@
           modalMsg.textContent = res.data.error || 'Не удалось зарегистрироваться.';
           modalMsg.style.color = '#b91c1c';
           modalMsg.style.display = 'block';
-          submitBtn.disabled = false; submitBtn.textContent = 'Подтвердить';
+          submitBtn.disabled = false; submitBtn.textContent = 'Отправить';
         }
       })
       .catch(function () {
         modalMsg.textContent = 'Ошибка соединения.';
         modalMsg.style.color = '#b91c1c';
         modalMsg.style.display = 'block';
-        submitBtn.disabled = false; submitBtn.textContent = 'Подтвердить';
+        submitBtn.disabled = false; submitBtn.textContent = 'Отправить';
       });
   }
 
+  /* ── Register button click ──────────────────────────── */
   btn.addEventListener('click', function () {
     if (!currentUser) {
       window.location.href = '/auth/';
       return;
     }
 
-    var extraFields = eventForm.filter(function (f) {
-      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
-    });
-
-    /* Build answer with fixed fields from user profile */
-    var fixedAnswer = {};
-    eventForm.forEach(function (f) {
-      if (f.name === 'first_name' && currentUser.first_name) fixedAnswer.first_name = currentUser.first_name;
-      if (f.name === 'last_name'  && currentUser.last_name)  fixedAnswer.last_name  = currentUser.last_name;
-      if (f.name === 'email'      && currentUser.email)      fixedAnswer.email      = currentUser.email;
-    });
-
-    if (extraFields.length === 0) {
-      btn.disabled = true; btn.textContent = 'Регистрация...';
-      submitRegistration(fixedAnswer);
+    /* External form: get prefilled link and redirect */
+    if (isExternal) {
+      btn.disabled = true; btn.textContent = 'Загрузка ссылки...';
+      fetch('/api/events/' + EVENT_ID + '/registration-link')
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function(d){ return Promise.reject(d); }); })
+        .then(function (data) {
+          if (data.prefill_url) {
+            window.open(data.prefill_url, '_blank');
+            btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+            showMsg('Ссылка открыта в новой вкладке.', true);
+          } else {
+            showMsg(data.error || 'Не удалось получить ссылку.', false);
+            btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+          }
+        })
+        .catch(function (err) {
+          showMsg((err && err.error) || 'Ошибка соединения.', false);
+          btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+        });
       return;
     }
 
-    // Есть доп. поля — показываем модалку
-    buildModalForm(extraFields);
+    /* Internal form registration */
+    var extraFields = eventForm.filter(function (f) { return !PROFILE_NAMES[f.name]; });
+    var profileAnswer = buildProfileAnswer();
+
     modalMsg.style.display = 'none';
-    document.getElementById('regSubmitBtn').disabled = false;
-    document.getElementById('regSubmitBtn').textContent = 'Подтвердить';
-    modal.style.display = 'flex';
+    document.getElementById('regModalTitle').textContent = 'Регистрация на событие';
+
+    if (extraFields.length === 0) {
+      // No extra fields — go straight to confirmation
+      document.getElementById('regStepFields').style.display = 'none';
+      document.getElementById('regStepConfirm').style.display = 'none';
+      modal.style.display = 'flex';
+      showConfirmation(profileAnswer, false);
+    } else {
+      // Has extra fields — show form first
+      buildModalForm(extraFields);
+      document.getElementById('regStepFields').style.display = 'block';
+      document.getElementById('regStepConfirm').style.display = 'none';
+      modal.style.display = 'flex';
+    }
   });
 
-  document.getElementById('regSubmitBtn').addEventListener('click', function () {
-    var extraFields = eventForm.filter(function (f) {
-      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
-    });
-    var answer = collectFormAnswer(extraFields);
+  /* ── "Далее" button — validate extra fields then show confirmation ── */
+  document.getElementById('regNextBtn').addEventListener('click', function () {
+    var extraFields = eventForm.filter(function (f) { return !PROFILE_NAMES[f.name]; });
+    var extraAnswer = collectFormAnswer(extraFields);
 
-    // Validate
+    // Validate extra fields
     for (var i = 0; i < extraFields.length; i++) {
       var f = extraFields[i];
-      var val = answer[f.name];
+      var val = extraAnswer[f.name];
       if (f.required && (val === undefined || val === '' || val === null)) {
         modalMsg.textContent = 'Заполните поле «' + f.label + '»';
         modalMsg.style.color = '#b91c1c';
@@ -317,21 +500,40 @@
       }
     }
 
-    eventForm.forEach(function (f) {
-      if (f.name === 'first_name' && currentUser && currentUser.first_name) answer.first_name = currentUser.first_name;
-      if (f.name === 'last_name'  && currentUser && currentUser.last_name)  answer.last_name  = currentUser.last_name;
-      if (f.name === 'email'      && currentUser && currentUser.email)      answer.email      = currentUser.email;
-    });
-    submitRegistration(answer);
+    // Merge profile + extra answers
+    var profileAnswer = buildProfileAnswer();
+    var fullAnswer = {};
+    Object.keys(profileAnswer).forEach(function (k) { fullAnswer[k] = profileAnswer[k]; });
+    Object.keys(extraAnswer).forEach(function (k) { fullAnswer[k] = extraAnswer[k]; });
+
+    showConfirmation(fullAnswer, true);
   });
 
-  document.getElementById('regCancelBtn').addEventListener('click', function () {
-    modal.style.display = 'none';
+  /* ── "Назад" button — go back to extra fields form ── */
+  document.getElementById('regBackBtn').addEventListener('click', function () {
+    document.getElementById('regStepFields').style.display = 'block';
+    document.getElementById('regStepConfirm').style.display = 'none';
+    document.getElementById('regModalTitle').textContent = 'Регистрация на событие';
+    modalMsg.style.display = 'none';
   });
 
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) modal.style.display = 'none';
+  /* ── "Отправить" button — validate and submit ──────── */
+  document.getElementById('regSubmitBtn').addEventListener('click', function () {
+    if (!validateConfirmForm()) {
+      modalMsg.textContent = 'Заполните все обязательные поля.';
+      modalMsg.style.color = '#b91c1c';
+      modalMsg.style.display = 'block';
+      return;
+    }
+    modalMsg.style.display = 'none';
+    var finalAnswer = collectConfirmAnswer();
+    submitRegistration(finalAnswer);
   });
+
+  /* ── Cancel buttons ── */
+  document.getElementById('regCancelBtn1').addEventListener('click', closeModal);
+  document.getElementById('regCancelBtn2').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
 
   document.addEventListener('DOMContentLoaded', checkRegistration);
 }());

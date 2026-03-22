@@ -18,16 +18,7 @@
   <a href="/" class="logo">
     <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
-  <div class="search-wrap">
-    <input class="search-input" type="text" placeholder="Поиск событий...">
-    <button class="filter-btn" title="Фильтры">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="6"  x2="20" y2="6"/>
-        <line x1="8" y1="12" x2="16" y2="12"/>
-        <line x1="10" y1="18" x2="14" y2="18"/>
-      </svg>
-    </button>
-  </div>
+  <a href="/swipe/" class="swipe-banner" title="Свайп-режим">Посвайпаем?</a>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
   <!-- Account button: already on profile, shows initials -->
   <a href="/profile/" class="account-btn" id="accountBtn">?</a>
@@ -86,8 +77,28 @@
         <input type="text" id="settingLastName" class="profile-input" placeholder="Ваша фамилия">
       </div>
       <div class="profile-field">
+        <label class="profile-field-label">Отчество</label>
+        <input type="text" id="settingPatronymic" class="profile-input" placeholder="Ваше отчество">
+      </div>
+      <div class="profile-field">
         <label class="profile-field-label">Email</label>
         <input type="email" id="settingEmail" class="profile-input" disabled>
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Дата рождения</label>
+        <input type="date" id="settingBirthDate" class="profile-input">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">ВУЗ</label>
+        <input type="text" id="settingUniversity" class="profile-input" placeholder="Название университета">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Факультет</label>
+        <input type="text" id="settingFaculty" class="profile-input" placeholder="Ваш факультет">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Курс</label>
+        <input type="text" id="settingCourse" class="profile-input" placeholder="Например: 3">
       </div>
     </div>
     <div class="profile-settings-footer">
@@ -119,11 +130,18 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('saveSettingsBtn').addEventListener('click', function () {
     var btn  = this;
     var note = document.getElementById('settingsNote');
-    var firstName = document.getElementById('settingFirstName').value.trim();
-    var lastName  = document.getElementById('settingLastName').value.trim();
+    var payload = {
+      first_name:  document.getElementById('settingFirstName').value.trim(),
+      last_name:   document.getElementById('settingLastName').value.trim(),
+      patronymic:  document.getElementById('settingPatronymic').value.trim(),
+      birth_date:  document.getElementById('settingBirthDate').value || '',
+      university:  document.getElementById('settingUniversity').value.trim(),
+      faculty:     document.getElementById('settingFaculty').value.trim(),
+      course:      document.getElementById('settingCourse').value.trim(),
+    };
 
     btn.disabled = true;
-    UniSphereAuth.post('/api/users/me/update', { first_name: firstName, last_name: lastName })
+    UniSphereAuth.post('/api/users/me/update', payload)
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function () {
         return fetch('/api/users/me').then(function (r) { return r.json(); });
@@ -218,7 +236,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('accountBtn').textContent    = ini;
     document.getElementById('settingFirstName').value    = fn;
     document.getElementById('settingLastName').value     = ln;
+    document.getElementById('settingPatronymic').value   = user.patronymic || '';
     document.getElementById('settingEmail').value        = user.email || '';
+    document.getElementById('settingBirthDate').value    = user.birth_date || '';
+    document.getElementById('settingUniversity').value   = user.university || '';
+    document.getElementById('settingFaculty').value      = user.faculty || '';
+    document.getElementById('settingCourse').value       = user.course || '';
   }
 
   /* ── Auth check ───────────────────────────────────────── */

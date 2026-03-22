@@ -91,7 +91,7 @@ class SwipeRateIn(Schema):
 
 
 @router.post("/{swipe_id}/rate", response={200: SwipeRateIn, 404: dict})
-def rate_swipe(request, swipe_id: int, status: str):
+def rate_swipe(request, swipe_id: int, data: SwipeRateIn):
     user = request.user
     if not user.is_authenticated:
         return 404, {"message": "User not authenticated"}
@@ -101,10 +101,10 @@ def rate_swipe(request, swipe_id: int, status: str):
     if swipe.status != EventSwipe.Status.PENDING:
         return 404, {"message": "Swipe already rated"}
 
-    if status not in [EventSwipe.Status.LIKE, EventSwipe.Status.DISLIKE]:
+    if data.status not in [EventSwipe.Status.LIKE, EventSwipe.Status.DISLIKE]:
         return 404, {"message": "Invalid status"}
 
-    swipe.status = status
+    swipe.status = data.status
     swipe.save(update_fields=['status'])
 
     return swipe
