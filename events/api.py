@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from django.shortcuts import get_object_or_404
-from ninja import Router, Schema
+from ninja import Router, Schema, Query
+
+from swipes.ml import SwipeML
 
 from events.models import *
 from organizations.models import OrganizationMember
@@ -13,16 +15,25 @@ from .regform import validate_form_schema, validate_form_data
 from forms_wrapper.form_reader import read_form
 from forms_wrapper.field_matcher import match_fields, apply_mapping
 
+from django.db.models import Q
+
 router = Router(tags=["Events"])
 
 
+class EventSearchSchema(Schema):
+    query: Optional[str] = None
+
+
 @router.get("/upcoming")
-def get_upcoming_events(request):
+def get_upcoming_events(request, data: EventSearchSchema = Query(...)):
     events = Event.objects.filter(
         registration_start__lte=timezone.now(),
         registration_end__gte=timezone.now(),
         is_published=True,
     )
+
+    if data.query:
+        events = events.filter(Q(title__icontains=data.query) | Q(description__icontains=data.query))
 
     events_list = []
     for event in events:
@@ -415,6 +426,7 @@ def publish_event(request, event_id: int):
         return {"error": "Cannot publish: external form is not attached"}
 
     event.is_published = True
+    event.embedding = SwipeML.get_embeddings(event.full_text)
     event.save()
 
     return {
