@@ -301,6 +301,14 @@ html, body {
 }
 .card-btn:hover { background: #0d6b8a; transform: translateY(-1px); }
 
+/* ─── Page layout for sticky footer ────────────────────── */
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.page-layout .main { flex: 1; }
+
 /* ─── Footer ───────────────────────────────────────────── */
 .footer {
   text-align: right;

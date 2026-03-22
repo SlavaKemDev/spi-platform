@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UniSphere — Вход</title>
   <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
-  <!-- Early redirect if already logged in (prevents form flash) -->
+  <!-- Redirect if already logged in (server session check) -->
   <script>
-    try {
-      if (sessionStorage.getItem('us_user')) { window.location.replace('/profile/'); }
-    } catch(e) {}
+    fetch('/api/users/me').then(function(r){
+      if(r.ok) return r.json(); throw 0;
+    }).then(function(d){
+      if(d && d.id) window.location.replace('/profile/');
+    }).catch(function(){});
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -171,8 +173,6 @@
       <p class="auth-demo-notice">
         Нет аккаунта?
         <a id="loginToRegister">Зарегистрироваться</a>
-        &nbsp;·&nbsp;
-        <a id="loginDemo">Войти как гость</a>
       </p>
     </div>
 
@@ -285,22 +285,6 @@
     window.location.href = '/profile/';
   }
 
-  /* ── Demo / guest login ─────────────────────────────── */
-  function startDemoSession(name, email) {
-    UniSphereAuth.setUser({
-      id:         'demo_' + Date.now(),
-      first_name: name  || 'Гость',
-      last_name:  '',
-      email:      email || 'demo@unisphere.ru',
-      is_demo:    true,
-    });
-    redirectToProfile();
-  }
-
-  document.getElementById('loginDemo').addEventListener('click', function () {
-    startDemoSession('Гость', 'demo@unisphere.ru');
-  });
-
   /* ── LOGIN ──────────────────────────────────────────── */
   document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -327,15 +311,9 @@
 
       var data = await res.json();
 
-      if (data.success || data.id) {
-        /* Real login succeeded — fetch full profile */
-        try {
-          var me = await fetch('/api/users/me');
-          var user = await me.json();
-          UniSphereAuth.setUser(user);
-        } catch (_) {
-          UniSphereAuth.setUser({ email: email, first_name: email.split('@')[0], last_name: '', id: data.id || 1 });
-        }
+      if (data.error) {
+        showMsg('loginMsg', data.error);
+      } else if (data.success) {
         showMsg('loginMsg', 'Успешный вход! Перенаправляем...', 'success');
         setTimeout(redirectToProfile, 700);
       } else {
@@ -372,7 +350,6 @@
     btn.disabled = true;
     btn.textContent = 'Регистрация...';
 
-    /* Send to real API (extra fields set to defaults for compatibility) */
     var payload = {
       first_name: name,
       last_name:  lastName,
@@ -386,13 +363,9 @@
       var res  = await UniSphereAuth.post('/api/users/register', payload);
       var data = await res.json();
 
-      if (data.success || data.id) {
-        UniSphereAuth.setUser({
-          id:         data.id || (data.user && data.user.id) || 1,
-          first_name: name,
-          last_name:  lastName,
-          email:      email,
-        });
+      if (data.error) {
+        showMsg('registerMsg', data.error);
+      } else if (data.success) {
         showMsg('registerMsg', 'Аккаунт создан! Перенаправляем...', 'success');
         setTimeout(redirectToProfile, 700);
       } else {

@@ -105,37 +105,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ── Logout ───────────────────────────────────────────── */
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    UniSphereAuth.clearUser();
     UniSphereAuth.post('/api/users/logout', {})
       .finally(function () { window.location.href = '/'; });
   });
 
   /* ── Save settings ────────────────────────────────────── */
   document.getElementById('saveSettingsBtn').addEventListener('click', function () {
-    var u = UniSphereAuth.getUser();
-    if (!u) return;
     var btn  = this;
     var note = document.getElementById('settingsNote');
-    u.first_name = document.getElementById('settingFirstName').value.trim();
-    u.last_name  = document.getElementById('settingLastName').value.trim();
+    var firstName = document.getElementById('settingFirstName').value.trim();
+    var lastName  = document.getElementById('settingLastName').value.trim();
 
     btn.disabled = true;
-    UniSphereAuth.post('/api/users/me/update', { first_name: u.first_name, last_name: u.last_name })
+    UniSphereAuth.post('/api/users/me/update', { first_name: firstName, last_name: lastName })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        if (d && (d.id || d.success)) {
-          UniSphereAuth.setUser(Object.assign(u, d));
-        } else {
-          UniSphereAuth.setUser(u);
-        }
-        renderProfile(UniSphereAuth.getUser());
-        showNote(note, '✓ Изменения сохранены', false);
+      .then(function () {
+        return fetch('/api/users/me').then(function (r) { return r.json(); });
+      })
+      .then(function (user) {
+        if (user && user.id) renderProfile(user);
+        showNote(note, 'Изменения сохранены', false);
       })
       .catch(function () {
-        /* API недоступна — сохраняем локально */
-        UniSphereAuth.setUser(u);
-        renderProfile(u);
-        showNote(note, '✓ Сохранено локально', false);
+        showNote(note, 'Не удалось сохранить изменения', true);
       })
       .finally(function () {
         btn.disabled = false;
@@ -199,18 +191,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /* ── Auth check ───────────────────────────────────────── */
-  var user = UniSphereAuth.getUser();
-  if (user) {
-    renderProfile(user);
-    loadRegistrations();
-    return;
-  }
-
   fetch('/api/users/me')
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
     .then(function (d) {
       if (d && d.id) {
-        UniSphereAuth.setUser(d);
         renderProfile(d);
         loadRegistrations();
       } else {
