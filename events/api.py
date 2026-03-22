@@ -22,6 +22,7 @@ def get_upcoming_events(request):
     events = Event.objects.filter(
         registration_start__lte=timezone.now(),
         registration_end__gte=timezone.now(),
+        is_published=True,
     )
 
     events_list = []
