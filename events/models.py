@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from helpers.random_file_name import RandomFileName
 
 
 class EventTag(models.Model):
@@ -21,6 +22,8 @@ class Event(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название', blank=True)
     description = models.TextField(verbose_name='Описание', blank=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
+
+    image = models.ImageField(upload_to=RandomFileName('event_images'), blank=True, null=True, verbose_name='Изображение')
 
     tags = models.ManyToManyField(EventTag, blank=True, verbose_name='Теги')
 

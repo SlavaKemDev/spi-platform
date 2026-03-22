@@ -27,7 +27,7 @@ data = """IT
  Знакомства
  Для всех"""
 
-for tag in data.split():
+for tag in data.split("\n"):
     tag = tag.strip()
     if not EventTag.objects.filter(name=tag).exists():
         EventTag.objects.create(name=tag)

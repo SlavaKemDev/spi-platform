@@ -21,7 +21,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from core.api import api
-from users.views import user_profile, auth_page, profile_page
+from users.views import auth_page, profile_page
 from events.views import home, event_detail, organizer_page, about_page
 
 urlpatterns = [
@@ -32,9 +32,9 @@ urlpatterns = [
     path('organizer/<int:event_id>/', organizer_page, name='organizer_page'),
     path('about/', about_page, name='about_page'),
     path('auth/', auth_page, name='auth'),
-    path('profile/', profile_page, name='profile'),
-    path('home', user_profile, name='user_profile'),  # temporary, for testing purposes
+    path('profile/', profile_page, name='profile')
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
