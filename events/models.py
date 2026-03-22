@@ -30,6 +30,7 @@ class Event(models.Model):
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
 
     form = models.JSONField(default=list, blank=True, verbose_name='Поля формы регистрации')
+    is_external = models.BooleanField(default=False, verbose_name='Внешняя форма регистрации')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
@@ -63,6 +64,19 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ExternalForm(models.Model):
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='external_form', verbose_name='Внешнее событие')
+    parsed_form = models.JSONField(default=dict, verbose_name='Распарсенная форма (read_form)')
+    field_mapping = models.JSONField(default=dict, blank=True, verbose_name='Маппинг полей формы')
+
+    class Meta:
+        verbose_name = 'Внешняя форма'
+        verbose_name_plural = 'Внешние формы'
+
+    def __str__(self):
+        return f"Внешняя форма для {self.event.title}"
 
 
 class EventRegistration(models.Model):
