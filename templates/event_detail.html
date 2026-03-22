@@ -262,19 +262,26 @@
   }
 
   btn.addEventListener('click', function () {
+    if (!currentUser) {
+      window.location.href = '/auth/';
+      return;
+    }
+
     var extraFields = eventForm.filter(function (f) {
       return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
     });
 
+    /* Build answer with fixed fields from user profile */
+    var fixedAnswer = {};
+    eventForm.forEach(function (f) {
+      if (f.name === 'first_name' && currentUser.first_name) fixedAnswer.first_name = currentUser.first_name;
+      if (f.name === 'last_name'  && currentUser.last_name)  fixedAnswer.last_name  = currentUser.last_name;
+      if (f.name === 'email'      && currentUser.email)      fixedAnswer.email      = currentUser.email;
+    });
+
     if (extraFields.length === 0) {
       btn.disabled = true; btn.textContent = 'Регистрация...';
-      var answer = {};
-      if (currentUser) {
-        if (currentUser.first_name) answer.first_name = currentUser.first_name;
-        if (currentUser.last_name)  answer.last_name  = currentUser.last_name;
-        if (currentUser.email)      answer.email      = currentUser.email;
-      }
-      submitRegistration(answer);
+      submitRegistration(fixedAnswer);
       return;
     }
 
@@ -310,11 +317,11 @@
       }
     }
 
-    if (currentUser) {
-      if (currentUser.first_name) answer.first_name = currentUser.first_name;
-      if (currentUser.last_name)  answer.last_name  = currentUser.last_name;
-      if (currentUser.email)      answer.email      = currentUser.email;
-    }
+    eventForm.forEach(function (f) {
+      if (f.name === 'first_name' && currentUser && currentUser.first_name) answer.first_name = currentUser.first_name;
+      if (f.name === 'last_name'  && currentUser && currentUser.last_name)  answer.last_name  = currentUser.last_name;
+      if (f.name === 'email'      && currentUser && currentUser.email)      answer.email      = currentUser.email;
+    });
     submitRegistration(answer);
   });
 

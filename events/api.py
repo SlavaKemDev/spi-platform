@@ -15,10 +15,6 @@ router = Router(tags=["Events"])
 
 @router.get("/upcoming")
 def get_upcoming_events(request):
-    user = request.user
-    if not user.is_authenticated:
-        return {"error": "User is not authenticated"}
-
     events = Event.objects.filter(
         registration_start__lte=timezone.now(),
         registration_end__gte=timezone.now(),
@@ -140,19 +136,15 @@ def get_event_registrations(request, event_id: int):
 @router.get("/{int:event_id}")
 def get_event_details(request, event_id: int):
     user = request.user
-    if not user.is_authenticated:
-        return {"error": "User is not authenticated"}
-
     event: Event = get_object_or_404(Event, id=event_id)
 
-    if EventRegistration.objects.filter(user=user, event=event).exists():
+    my_registration_dict = None
+    if user.is_authenticated and EventRegistration.objects.filter(user=user, event=event).exists():
         my_registration = EventRegistration.objects.get(user=user, event=event)
         my_registration_dict = {
             "registered_at": my_registration.registered_at,
             "status": my_registration.status
         }
-    else:
-        my_registration_dict = None
 
     return {
         "id": event.id,

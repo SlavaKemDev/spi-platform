@@ -23,6 +23,86 @@
       margin-left: auto; white-space: nowrap; flex-shrink: 0;
     }
     .event-edit-link:hover { text-decoration: underline; }
+
+    .org-layout {
+      display: flex; gap: 24px; align-items: flex-start;
+      max-width: 1200px; margin: 0 auto; padding: 24px 16px;
+      flex-wrap: wrap;
+    }
+    .org-sidebar {
+      flex: 0 0 280px; display: flex; flex-direction: column; gap: 20px;
+    }
+    .org-main { flex: 1; min-width: 0; }
+    .org-sidebar-right {
+      flex: 0 0 340px; display: flex; flex-direction: column; gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .org-layout { flex-direction: column; }
+      .org-sidebar, .org-sidebar-right { flex: 1 1 100%; }
+    }
+
+    .panel {
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 20px;
+    }
+    .panel-title {
+      font-size: 1rem; font-weight: 700; margin: 0 0 14px; color: var(--text);
+    }
+
+    .members-table {
+      width: 100%; border-collapse: collapse; font-size: .85rem;
+    }
+    .members-table th, .members-table td {
+      text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border);
+    }
+    .members-table th { font-weight: 600; color: var(--muted); font-size: .78rem; }
+    .admin-badge {
+      font-size: .7rem; font-weight: 700; color: var(--accent); background: var(--tag-bg);
+      border-radius: 4px; padding: 1px 5px; margin-left: 4px;
+    }
+
+    .add-member-form {
+      display: flex; gap: 8px; margin-top: 12px; align-items: center;
+    }
+    .add-member-form input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 6px 10px; font-size: .85rem; color: var(--text);
+      background: var(--bg); font-family: inherit;
+    }
+    .add-member-form button {
+      white-space: nowrap; padding: 6px 14px; border-radius: 8px;
+      background: var(--accent); color: #fff; border: none; font-weight: 600;
+      font-size: .82rem; cursor: pointer;
+    }
+
+    .reg-item {
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 10px; background: var(--card-bg);
+    }
+    .reg-item-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .reg-item-name { font-weight: 600; font-size: .9rem; }
+    .reg-item-event { font-size: .78rem; color: var(--muted); }
+    .reg-item-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .reg-btn-approve, .reg-btn-reject {
+      padding: 4px 12px; border-radius: 6px; border: none;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+    }
+    .reg-btn-approve { background: #dcfce7; color: #15803d; }
+    .reg-btn-reject { background: #fee2e2; color: #b91c1c; }
+    [data-theme="dark"] .reg-btn-approve { background: #14532d; color: #86efac; }
+    [data-theme="dark"] .reg-btn-reject { background: #3f0f0f; color: #f87171; }
+    .reg-status-badge {
+      font-size: .72rem; font-weight: 700; border-radius: 4px; padding: 1px 6px;
+    }
+    .reg-status-pending { background: #fef9c3; color: #a16207; }
+    .reg-status-approved { background: #dcfce7; color: #15803d; }
+    .reg-status-rejected { background: #fee2e2; color: #b91c1c; }
+    [data-theme="dark"] .reg-status-pending { background: #422006; color: #fde047; }
+    [data-theme="dark"] .reg-status-approved { background: #14532d; color: #86efac; }
+    [data-theme="dark"] .reg-status-rejected { background: #3f0f0f; color: #f87171; }
   </style>
 </head>
 <body>
@@ -47,59 +127,88 @@
 </header>
 
 <!-- ── Organizer Page ──────────────────────────────────── -->
-<div class="org-wrap">
-  <div class="org-card">
+<div class="org-layout">
 
-    <div class="org-banner">{{ organizer.emoji }}</div>
+  <!-- LEFT SIDEBAR: Members -->
+  <div class="org-sidebar" id="membersSidebar" style="display:none">
+    <div class="panel">
+      <h3 class="panel-title">Участники организации</h3>
+      <table class="members-table">
+        <thead><tr><th>Имя</th><th>Email</th><th>Роль</th></tr></thead>
+        <tbody id="membersTableBody"></tbody>
+      </table>
+      <!-- Admin-only: add member -->
+      <div id="addMemberBlock" style="display:none">
+        <div class="add-member-form">
+          <input type="number" id="addMemberInput" placeholder="User ID">
+          <button id="addMemberBtn">Добавить</button>
+        </div>
+        <p id="addMemberMsg" style="font-size:.8rem;margin-top:6px;display:none"></p>
+      </div>
+    </div>
+  </div>
 
-    <div class="org-body">
-      <h1 class="org-name">{{ organizer.name }}</h1>
-      <p class="org-tagline">{{ organizer.tagline }}</p>
+  <!-- CENTER: Org info + events -->
+  <div class="org-main">
+    <div class="org-card">
+      <div class="org-banner">{{ organizer.emoji }}</div>
+      <div class="org-body">
+        <h1 class="org-name">{{ organizer.name }}</h1>
+        <p class="org-tagline">{{ organizer.tagline }}</p>
 
-      <h2 class="org-section-title">Об организации</h2>
-      <p class="org-desc">{{ organizer.desc }}</p>
+        <h2 class="org-section-title">Об организации</h2>
+        <p class="org-desc">{{ organizer.desc }}</p>
 
-      {% if organizer.about %}
-      <p class="org-desc">{{ organizer.about }}</p>
-      {% endif %}
+        {% if organizer.about %}
+        <p class="org-desc">{{ organizer.about }}</p>
+        {% endif %}
 
-      {% if organizer.events %}
-      <h2 class="org-section-title">Мероприятия организатора</h2>
-      <ul class="org-events-list" id="orgEventsList">
-        {% for ev in organizer.events %}
-        <li{% if not ev.is_published %} class="event-unpublished"{% endif %}>
-          <a href="{% if ev.is_published %}/events/{{ ev.event_id }}/{% else %}/events/{{ ev.event_id }}/edit/{% endif %}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;flex:1;min-width:0">
-            <span class="org-event-emoji">{{ ev.emoji }}</span>
-            <div style="flex:1;min-width:0">
-              <strong>{{ ev.title }}{% if not ev.title %}(Без названия){% endif %}</strong>
-              {% if not ev.is_published %}<span class="event-unpublished-badge">Черновик</span>{% endif %}
-              <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
-            </div>
-          </a>
-          {% if not ev.is_published %}
-          <a href="/events/{{ ev.event_id }}/edit/" class="event-edit-link">Редактировать</a>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+        {% if organizer.events %}
+        <h2 class="org-section-title">Мероприятия организатора</h2>
+        <ul class="org-events-list" id="orgEventsList">
+          {% for ev in organizer.events %}
+          <li{% if not ev.is_published %} class="event-unpublished" data-unpublished="1"{% endif %}>
+            <a href="{% if ev.is_published %}/events/{{ ev.event_id }}/{% else %}/events/{{ ev.event_id }}/edit/{% endif %}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+              <span class="org-event-emoji">{{ ev.emoji }}</span>
+              <div style="flex:1;min-width:0">
+                <strong>{{ ev.title }}{% if not ev.title %}(Без названия){% endif %}</strong>
+                {% if not ev.is_published %}<span class="event-unpublished-badge">Черновик</span>{% endif %}
+                <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
+              </div>
+            </a>
+            {% if not ev.is_published %}
+            <a href="/events/{{ ev.event_id }}/edit/" class="event-edit-link">Редактировать</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
 
-      <div class="org-actions">
-        <a href="/" class="btn-back">← К событиям</a>
+        <div class="org-actions">
+          <a href="/" class="btn-back">← К событиям</a>
+        </div>
       </div>
     </div>
 
-  </div>
-
-  <!-- Create event card (visible only for org members) -->
-  <div class="org-card" id="createEventCard" style="display:none;margin-top:24px">
-    <div class="org-body">
-      <h2 class="org-section-title" style="margin-top:0">Создать событие</h2>
-      <p class="org-desc" style="margin-bottom:16px">Создайте черновик нового мероприятия для этой организации.</p>
-      <button class="btn-register" id="createEventBtn">Создать событие</button>
-      <p id="createEventMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
+    <!-- Create event card (visible only for org members) -->
+    <div class="org-card" id="createEventCard" style="display:none;margin-top:24px">
+      <div class="org-body">
+        <h2 class="org-section-title" style="margin-top:0">Создать событие</h2>
+        <p class="org-desc" style="margin-bottom:16px">Создайте черновик нового мероприятия для этой организации.</p>
+        <button class="btn-register" id="createEventBtn">Создать событие</button>
+        <p id="createEventMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
+      </div>
     </div>
   </div>
+
+  <!-- RIGHT SIDEBAR: Registration reviews -->
+  <div class="org-sidebar-right" id="reviewSidebar" style="display:none">
+    <div class="panel">
+      <h3 class="panel-title">Заявки на регистрацию</h3>
+      <div id="reviewList"><p style="font-size:.85rem;color:var(--muted)">Загрузка...</p></div>
+    </div>
+  </div>
+
 </div>
 
 <script src="{% static 'js/carousel.js' %}"></script>
@@ -107,17 +216,187 @@
 <script>
 (function () {
   var ORG_ID = {{ organizer.id }};
+  var orgStatus = 'none'; // none, member, admin
 
-  /* Check if current user is a member of this org */
+  /* ── 1. Check membership & init panels ─────────────── */
   fetch('/api/organizations/' + ORG_ID)
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
     .then(function (data) {
-      if (data.status === 'admin' || data.status === 'member') {
+      orgStatus = data.status || 'none';
+
+      if (orgStatus === 'admin' || orgStatus === 'member') {
         document.getElementById('createEventCard').style.display = 'block';
+        document.getElementById('membersSidebar').style.display = 'flex';
+        document.getElementById('reviewSidebar').style.display = 'flex';
+        loadMembers();
+        loadRegistrations(data.events || []);
+      } else {
+        // Hide unpublished events for non-members
+        var unpub = document.querySelectorAll('[data-unpublished="1"]');
+        for (var i = 0; i < unpub.length; i++) unpub[i].style.display = 'none';
       }
     })
-    .catch(function () {});
+    .catch(function () {
+      // Not authenticated or error — hide unpublished
+      var unpub = document.querySelectorAll('[data-unpublished="1"]');
+      for (var i = 0; i < unpub.length; i++) unpub[i].style.display = 'none';
+    });
 
+  /* ── 2. Members table ──────────────────────────────── */
+  function loadMembers() {
+    fetch('/api/organizations/' + ORG_ID + '/members')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (members) {
+        if (!Array.isArray(members)) return;
+        var tbody = document.getElementById('membersTableBody');
+        tbody.innerHTML = '';
+        members.forEach(function (m) {
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + esc(m.first_name + ' ' + m.last_name) + '</td>' +
+            '<td>' + esc(m.email) + '</td>' +
+            '<td>' + (m.is_admin ? '<span class="admin-badge">Админ</span>' : 'Участник') + '</td>';
+          tbody.appendChild(tr);
+        });
+
+        if (orgStatus === 'admin') {
+          document.getElementById('addMemberBlock').style.display = 'block';
+        }
+      })
+      .catch(function () {});
+  }
+
+  /* ── Add member (admin only) ───────────────────────── */
+  var addBtn = document.getElementById('addMemberBtn');
+  var addInput = document.getElementById('addMemberInput');
+  var addMsg = document.getElementById('addMemberMsg');
+
+  addBtn.addEventListener('click', function () {
+    var userId = parseInt(addInput.value, 10);
+    if (!userId) {
+      addMsg.textContent = 'Введите ID пользователя';
+      addMsg.style.color = '#b91c1c';
+      addMsg.style.display = 'block';
+      return;
+    }
+    addBtn.disabled = true;
+    addMsg.style.display = 'none';
+
+    UniSphereAuth.post('/api/organizations/' + ORG_ID + '/members/add', { user_id: userId })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          addMsg.textContent = 'Участник добавлен!';
+          addMsg.style.color = '#16a34a';
+          addMsg.style.display = 'block';
+          addInput.value = '';
+          loadMembers();
+        } else {
+          addMsg.textContent = data.error || 'Ошибка';
+          addMsg.style.color = '#b91c1c';
+          addMsg.style.display = 'block';
+        }
+        addBtn.disabled = false;
+      })
+      .catch(function () {
+        addMsg.textContent = 'Ошибка соединения';
+        addMsg.style.color = '#b91c1c';
+        addMsg.style.display = 'block';
+        addBtn.disabled = false;
+      });
+  });
+
+  /* ── 3. Registration reviews ───────────────────────── */
+  var STATUS_LABELS = { pending: 'На рассмотрении', approved: 'Подтверждён', rejected: 'Отклонён' };
+
+  function loadRegistrations(events) {
+    var container = document.getElementById('reviewList');
+    container.innerHTML = '<p style="font-size:.85rem;color:var(--muted)">Загрузка заявок...</p>';
+
+    var eventIds = events.map(function (e) { return e.id; });
+    if (eventIds.length === 0) {
+      container.innerHTML = '<p style="font-size:.85rem;color:var(--muted)">Нет событий</p>';
+      return;
+    }
+
+    var promises = eventIds.map(function (eid) {
+      return fetch('/api/events/' + eid + '/registrations')
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .catch(function () { return []; });
+    });
+
+    Promise.all(promises).then(function (results) {
+      var allRegs = [];
+      for (var i = 0; i < results.length; i++) {
+        if (!Array.isArray(results[i])) continue;
+        var evName = events[i].name || events[i].title || '—';
+        results[i].forEach(function (reg) {
+          reg._event_name = evName;
+          allRegs.push(reg);
+        });
+      }
+
+      if (allRegs.length === 0) {
+        container.innerHTML = '<p style="font-size:.85rem;color:var(--muted)">Заявок пока нет</p>';
+        return;
+      }
+
+      container.innerHTML = '';
+      allRegs.forEach(function (reg) {
+        var div = document.createElement('div');
+        div.className = 'reg-item';
+        div.id = 'reg-' + reg.id;
+
+        var statusCls = 'reg-status-' + (reg.status || 'pending');
+        var statusText = STATUS_LABELS[reg.status] || reg.status;
+
+        var html =
+          '<div class="reg-item-header">' +
+            '<span class="reg-item-name">' + esc(reg.user_first_name + ' ' + reg.user_last_name) + '</span>' +
+            '<span class="reg-status-badge ' + statusCls + '">' + statusText + '</span>' +
+          '</div>' +
+          '<div class="reg-item-event">' + esc(reg._event_name) + ' · ' + esc(reg.user_email) + '</div>';
+
+        if (reg.status === 'pending') {
+          html +=
+            '<div class="reg-item-actions">' +
+              '<button class="reg-btn-approve" onclick="reviewReg(' + reg.id + ',\'approved\')">Принять</button>' +
+              '<button class="reg-btn-reject" onclick="reviewReg(' + reg.id + ',\'rejected\')">Отклонить</button>' +
+            '</div>';
+        }
+
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+    });
+  }
+
+  window.reviewReg = function (regId, status) {
+    var item = document.getElementById('reg-' + regId);
+    var btns = item ? item.querySelectorAll('button') : [];
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+
+    UniSphereAuth.post('/api/events/registrations/' + regId + '/review', { status: status })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.registration_id) {
+          var badge = item.querySelector('.reg-status-badge');
+          badge.className = 'reg-status-badge reg-status-' + status;
+          badge.textContent = STATUS_LABELS[status] || status;
+          var actions = item.querySelector('.reg-item-actions');
+          if (actions) actions.remove();
+        } else {
+          alert(data.error || 'Ошибка');
+          for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+        }
+      })
+      .catch(function () {
+        alert('Ошибка соединения');
+        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+      });
+  };
+
+  /* ── 4. Create event ───────────────────────────────── */
   var btn = document.getElementById('createEventBtn');
   var msg = document.getElementById('createEventMsg');
 
@@ -147,6 +426,13 @@
         btn.textContent = 'Создать событие';
       });
   });
+
+  /* ── Helper ────────────────────────────────────────── */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s || ''));
+    return d.innerHTML;
+  }
 }());
 </script>
 </body>
