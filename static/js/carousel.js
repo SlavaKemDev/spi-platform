@@ -94,6 +94,41 @@
       applyOffset(pixelOffset + px, false);
     }, { passive: false });
 
+    /* ── Touch swipe ──────────────────────────────────────────── */
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var touchStartOffset = 0;
+    var isHorizSwipe = null;
+
+    clip.addEventListener('touchstart', function (e) {
+      touchStartX      = e.touches[0].clientX;
+      touchStartY      = e.touches[0].clientY;
+      touchStartOffset = pixelOffset;
+      isHorizSwipe     = null;
+      track.style.transition = 'none';
+    }, { passive: true });
+
+    clip.addEventListener('touchmove', function (e) {
+      var dx = touchStartX - e.touches[0].clientX;
+      var dy = touchStartY - e.touches[0].clientY;
+
+      if (isHorizSwipe === null) {
+        isHorizSwipe = Math.abs(dx) > Math.abs(dy);
+      }
+      if (!isHorizSwipe) return;
+
+      e.preventDefault();
+      applyOffset(touchStartOffset + dx, false);
+    }, { passive: false });
+
+    clip.addEventListener('touchend', function (e) {
+      if (!isHorizSwipe) return;
+      var dx   = touchStartX - e.changedTouches[0].clientX;
+      var cw   = cardWidth() + GAP_PX;
+      var idx  = Math.round((touchStartOffset + dx) / cw);
+      applyOffset(idx * cw, true);
+    }, { passive: true });
+
     /* Recalculate on resize */
     window.addEventListener('resize', function () {
       applyOffset(pixelOffset, false);

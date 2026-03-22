@@ -1246,3 +1246,182 @@ html, body {
   border-color: var(--accent);
 }
 .filter-btn.active svg { stroke: #fff; }
+
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — mobile overrides
+   ═══════════════════════════════════════════════════════ */
+
+/* ── ≤ 768 px ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Header: 2-row layout */
+  .header {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Row 1: logo | sphere | spacer | theme | account */
+  .logo        { order: 1; }
+  .sphere-btn  { order: 2; font-size: .82rem; padding: 5px 12px; }
+  .theme-btn   { order: 3; margin-left: auto; }
+  .account-btn { order: 4; }
+
+  /* Row 2: search stretches full width */
+  .search-wrap {
+    order: 10;
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* Main content */
+  .main    { padding: 20px 14px 40px; }
+  .footer  { padding: 0 14px 20px; }
+  .section-title { font-size: 1.25rem; margin-bottom: 16px; }
+
+  /* Carousel — show ~1 card + peek */
+  .carousel-clip   { padding: 12px 6px; margin: -12px -6px; }
+  .carousel-track  { gap: 14px; }
+  .event-card      { flex: 0 0 min(calc(100vw - 80px), 340px); }
+  .carousel-arrow  { width: 36px; height: 36px; }
+  .carousel-arrow svg { width: 22px; height: 22px; }
+
+  /* Rec widget */
+  .rec-widget { margin: 20px 14px 0; max-width: 100%; }
+
+  /* Filter panel */
+  #filterPanel { margin-left: 0; margin-right: 0; }
+
+  /* Event Detail */
+  .detail-wrap  { margin: 16px auto; padding: 0 10px; }
+  .detail-body  { padding: 18px 16px 22px; }
+  .detail-title { font-size: 1.3rem; }
+  .detail-actions { flex-direction: column; }
+  .detail-actions > * { width: 100%; text-align: center; box-sizing: border-box; }
+
+  /* Organizer page */
+  .org-wrap { margin: 16px auto; padding: 0 10px; }
+  .org-body { padding: 18px 16px 22px; }
+  .org-name { font-size: 1.3rem; }
+
+  /* About page */
+  .about-wrap { margin: 16px auto; padding: 0 10px 36px; }
+  .about-body { padding: 18px 16px 22px; }
+  .about-title { font-size: 1.3rem; }
+
+  /* Profile */
+  .profile-wrap       { margin: 16px auto; padding: 0 10px 40px; }
+  .profile-hero-body  { padding: 0 14px 18px; flex-wrap: wrap; }
+  .profile-hero-banner { height: 68px; }
+  .profile-avatar     { width: 60px; height: 60px; font-size: 1.2rem; margin-top: -30px; }
+  .profile-name       { font-size: 1.05rem; }
+  .profile-grid       { grid-template-columns: 1fr; }
+  .profile-card       { padding: 16px 14px; }
+  .profile-tabs       { padding: 0 10px; gap: 6px; }
+  .profile-tab        { padding: 8px 14px; font-size: .82rem; }
+  .profile-actions    { flex-direction: column; align-items: stretch; }
+  .profile-actions > * { width: 100%; }
+
+  /* Members table: allow horizontal scroll on mobile */
+  .members-table     { overflow-x: auto; }
+  .members-header,
+  .members-row       { min-width: 480px; }
+
+  /* Form type grid: 1 column */
+  .form-type-grid { grid-template-columns: 1fr; }
+
+  /* Org dashboard hero actions */
+  .org-event-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+/* ── ≤ 480 px ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Header: even tighter */
+  .header { padding: 8px 12px; }
+  .logo-icon { width: 28px; height: 28px; }
+  .sphere-btn { font-size: .78rem; padding: 4px 10px; }
+  .theme-btn  { width: 36px; height: 36px; }
+  .account-btn { width: 38px; height: 38px; }
+
+  /* Cards: nearly full width */
+  .event-card { flex: 0 0 calc(100vw - 56px); }
+
+  /* Carousel arrows smaller */
+  .carousel-arrow { width: 30px; }
+  .carousel-arrow svg { width: 18px; height: 18px; }
+
+  /* Settings grid: always 1 col */
+  .profile-settings-grid { grid-template-columns: 1fr !important; }
+
+  /* Detail actions stacked */
+  .btn-back, .btn-organizer, .btn-register {
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  /* Org cards: 1 col */
+  .org-cards-grid { grid-template-columns: 1fr; }
+
+  /* Category chips: wrap tighter */
+  .category-chips { gap: 6px; }
+  .cat-chip { font-size: .78rem; padding: 5px 12px; }
+
+  /* Profile tabs full row */
+  .profile-tabs { flex-direction: column; }
+  .profile-tab  { text-align: center; }
+
+  /* Rec widget */
+  .rec-widget { padding: 18px 16px; }
+  .rec-btn-yes, .rec-btn-no { font-size: .85rem; }
+
+  /* Section title */
+  .section-title { font-size: 1.1rem; }
+}
+
+/* ── Touch devices: remove hover effects that look odd ─── */
+@media (hover: none) {
+  .event-card:hover    { transform: none; box-shadow: var(--shadow); }
+  .card-btn:hover      { transform: none; }
+  .org-card:hover      { transform: none; }
+  .btn-back:hover      { background: transparent; border-color: var(--border); }
+  .sphere-btn:hover    { transform: none; box-shadow: none; }
+}
+
+/* ── Profile hero: fix actions row on mobile ───────────── */
+@media (max-width: 600px) {
+  .profile-hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .profile-actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  /* Sphere page onboarding chips */
+  .ob-title  { font-size: 1.5rem; }
+  .ob-chip   { font-size: .85rem; padding: 8px 16px; }
+  /* Swipe card height on small screens */
+  .card-stack { height: 460px; }
+}
+
+/* ── Ensure inputs don't zoom on iOS (font-size >= 16px) ── */
+@media (max-width: 768px) {
+  .profile-input,
+  .search-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="url"],
+  input[type="number"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
