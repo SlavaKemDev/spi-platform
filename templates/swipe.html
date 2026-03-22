@@ -190,14 +190,20 @@
   var FORMAT_ICONS = { online: '💻', offline: '📍', hybrid: '🔀' };
   var FORMAT_LABELS = { online: 'Онлайн', offline: 'Оффлайн' };
 
-  var events = [];
-  var currentIndex = 0;
+  var currentSwipe = null;   // { id, status, event: {...} }
+  var nextSwipe = null;      // prefetched next swipe
   var busy = false;
+  var swipeCount = 0;
 
   var container = document.getElementById('cardContainer');
   var actions = document.getElementById('swipeActions');
   var counter = document.getElementById('swipeCounter');
   var arena = document.getElementById('swipeArena');
+
+  function getCookie(name) {
+    var m = document.cookie.match('(^|;)\\s*' + name + '=([^;]+)');
+    return m ? m[2] : '';
+  }
 
   function esc(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -234,14 +240,43 @@
   }
 
   function updateCounter() {
-    if (events.length === 0) { counter.textContent = ''; return; }
-    counter.textContent = (currentIndex + 1) + ' / ' + events.length;
+    counter.textContent = swipeCount > 0 ? 'Просмотрено: ' + swipeCount : '';
   }
 
+  /* ── API calls ─────────────────────────────────────── */
+  function fetchNewSwipe() {
+    return fetch('/api/swipes/new', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      credentials: 'same-origin'
+    }).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) return null;
+      return r.json();
+    }).catch(function () { return null; });
+  }
+
+  function rateSwipe(swipeId, status) {
+    return fetch('/api/swipes/' + swipeId + '/rate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ status: status })
+    }).then(function (r) { return r.json(); })
+      .catch(function () { return null; });
+  }
+
+  /* ── Show states ───────────────────────────────────── */
   function showEmpty() {
     container.innerHTML = '';
     actions.style.display = 'none';
     counter.textContent = '';
+
+    var existing = arena.querySelector('.swipe-empty');
+    if (existing) existing.remove();
 
     var empty = document.createElement('div');
     empty.className = 'swipe-empty';
@@ -251,29 +286,44 @@
       + '<div class="swipe-empty-text">Вы просмотрели все доступные события. Возвращайтесь позже!</div>'
       + '<div class="swipe-empty-actions">'
       + '<a href="/" class="btn-back" style="padding:10px 24px">← На главную</a>'
-      + '<button class="btn-register" id="restartBtn" style="padding:10px 24px">Начать заново</button>'
       + '</div>';
     container.parentNode.insertBefore(empty, container);
-
-    document.getElementById('restartBtn').addEventListener('click', function () {
-      empty.remove();
-      currentIndex = 0;
-      actions.style.display = 'flex';
-      renderCards();
-    });
   }
 
-  function renderCards() {
+  function showLogin() {
     container.innerHTML = '';
-    if (currentIndex >= events.length) { showEmpty(); return; }
+    actions.style.display = 'none';
+    counter.textContent = '';
+
+    var msg = document.createElement('div');
+    msg.className = 'swipe-empty';
+    msg.innerHTML =
+      '<div class="swipe-empty-emoji">🔒</div>'
+      + '<div class="swipe-empty-title">Войдите, чтобы свайпать</div>'
+      + '<div class="swipe-empty-text">Для персональных рекомендаций нужна авторизация</div>'
+      + '<div class="swipe-empty-actions">'
+      + '<a href="/auth/" class="btn-register" style="padding:10px 24px">Войти</a>'
+      + '</div>';
+    container.parentNode.insertBefore(msg, container);
+  }
+
+  function showLoading() {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:.95rem;">Загрузка...</div>';
+  }
+
+  /* ── Render card ───────────────────────────────────── */
+  function renderCard() {
+    container.innerHTML = '';
+    if (!currentSwipe) { showEmpty(); return; }
+    actions.style.display = 'flex';
     updateCounter();
 
-    // Next card (behind)
-    if (currentIndex + 1 < events.length) {
+    // Next card (behind) — if prefetched
+    if (nextSwipe) {
       var next = document.createElement('div');
       next.className = 'swipe-card swipe-card-next';
       next.id = 'nextCard';
-      next.innerHTML = buildCardHTML(events[currentIndex + 1]);
+      next.innerHTML = buildCardHTML(nextSwipe.event);
       container.appendChild(next);
     }
 
@@ -281,7 +331,7 @@
     var card = document.createElement('div');
     card.className = 'swipe-card swipe-card-current card-enter';
     card.id = 'currentCard';
-    card.innerHTML = buildCardHTML(events[currentIndex]);
+    card.innerHTML = buildCardHTML(currentSwipe.event);
     container.appendChild(card);
 
     setupDrag(card);
@@ -358,6 +408,10 @@
     if (!card) { busy = false; return; }
 
     var isRight = dir === 'right';
+    var rateStatus = isRight ? 'like' : 'dislike';
+
+    // Send rating to API
+    rateSwipe(currentSwipe.id, rateStatus);
 
     // Show stamp
     card.querySelector('.stamp-like').style.opacity = isRight ? 1 : 0;
@@ -381,14 +435,13 @@
     if (card._cleanup) card._cleanup();
 
     // Arc animation params
-    // Card pivots from bottom corner, rotating like a pendulum falling
     var sign = isRight ? 1 : -1;
     var origin = isRight ? 'right bottom' : 'left bottom';
     card.style.transformOrigin = origin;
-    card.classList.add('swiping'); // no CSS transition, we animate manually
+    card.classList.add('swiping');
 
-    var duration = 600; // ms
-    var maxAngle = 75; // degrees
+    var duration = 600;
+    var maxAngle = 75;
     var start = null;
 
     function tick(ts) {
@@ -396,8 +449,7 @@
       var elapsed = ts - start;
       var t = Math.min(elapsed / duration, 1);
 
-      // Easing: ease-in (gravity feel)
-      var ease = t * t * (3 - 2 * t); // smoothstep for nice feel
+      var ease = t * t * (3 - 2 * t);
       var angle = sign * maxAngle * ease;
       var opacity = 1 - Math.pow(t, 1.5);
 
@@ -407,13 +459,32 @@
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
-        // Card done — fade ghost
         ghost.classList.add('fade');
         setTimeout(function () {
           ghost.remove();
-          currentIndex++;
+          swipeCount++;
+          // Move prefetched next into current, fetch a new next
+          currentSwipe = nextSwipe;
+          nextSwipe = null;
           busy = false;
-          renderCards();
+          if (currentSwipe) {
+            renderCard();
+            // Prefetch next card in background
+            fetchNewSwipe().then(function (s) {
+              nextSwipe = s;
+            });
+          } else {
+            // No prefetched card — try to fetch one more
+            fetchNewSwipe().then(function (s) {
+              currentSwipe = s;
+              if (currentSwipe) {
+                renderCard();
+                fetchNewSwipe().then(function (s2) { nextSwipe = s2; });
+              } else {
+                showEmpty();
+              }
+            });
+          }
         }, 500);
       }
     }
@@ -430,18 +501,37 @@
     if (e.key === 'ArrowLeft' || e.key === 'h') animateOut('left');
   });
 
-  /* ── Load events ──────────────────────────────────── */
-  fetch('/api/events/upcoming')
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-    .then(function (data) {
-      if (Array.isArray(data) && data.length > 0) {
-        events = data;
-        renderCards();
-      } else {
-        showEmpty();
+  /* ── Init: fetch first card from API ───────────────── */
+  showLoading();
+  fetchNewSwipe().then(function (swipe) {
+    if (!swipe) {
+      // Check if it's auth issue or no events
+      fetch('/api/users/me', { credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) { showLogin(); }
+          else { showEmpty(); }
+        })
+        .catch(function () { showLogin(); });
+      return;
+    }
+    currentSwipe = swipe;
+    renderCard();
+    // Prefetch next card
+    fetchNewSwipe().then(function (s) {
+      nextSwipe = s;
+      // If we have a next card, re-render to show it behind
+      if (nextSwipe && document.getElementById('currentCard')) {
+        var nextEl = document.getElementById('nextCard');
+        if (!nextEl) {
+          var n = document.createElement('div');
+          n.className = 'swipe-card swipe-card-next';
+          n.id = 'nextCard';
+          n.innerHTML = buildCardHTML(nextSwipe.event);
+          container.insertBefore(n, container.firstChild);
+        }
       }
-    })
-    .catch(function () { showEmpty(); });
+    });
+  });
 }());
 </script>
 </body>

@@ -19,6 +19,26 @@ class EventOut(Schema):
     id: int
     title: str
     description: str
+    image: str = None
+    event_start: str = None
+    event_end: str = None
+    location: str = None
+    format: str = None
+    organization_name: str = None
+
+    @staticmethod
+    def from_event(event):
+        return {
+            "id": event.id,
+            "title": event.title,
+            "description": event.description,
+            "image": event.image.url if event.image else None,
+            "event_start": event.event_start.isoformat() if event.event_start else None,
+            "event_end": event.event_end.isoformat() if event.event_end else None,
+            "location": event.location,
+            "format": event.format,
+            "organization_name": event.organization.name if event.organization else None,
+        }
 
 
 class SwipeOut(Schema):
@@ -33,9 +53,9 @@ def new_swipe(request):
     if not user.is_authenticated:
         return 404, {"message": "User not authenticated"}
 
-    pending = EventSwipe.objects.filter(user=user, status=EventSwipe.Status.PENDING).select_related('event').first()
+    pending = EventSwipe.objects.filter(user=user, status=EventSwipe.Status.PENDING).select_related('event', 'event__organization').first()
     if pending:
-        return pending
+        return {"id": pending.id, "status": pending.status, "event": EventOut.from_event(pending.event)}
 
     # find event that user not performed with
 
@@ -49,7 +69,7 @@ def new_swipe(request):
         is_published=True,
         registration_end__gte=timezone.now(),
         embedding__isnull=False
-    ).exclude(eventswipe__user=user)
+    ).exclude(eventswipe__user=user).select_related('organization')
 
     if not candidates_qs.exists():
         return 404, {"message": "No more events"}
@@ -83,15 +103,15 @@ def new_swipe(request):
 
     event_swipe = EventSwipe.objects.create(user=user, event=event)
 
-    return event_swipe
+    return {"id": event_swipe.id, "status": event_swipe.status, "event": EventOut.from_event(event)}
 
 
 class SwipeRateIn(Schema):
     status: str
 
 
-@router.post("/{swipe_id}/rate", response={200: SwipeRateIn, 404: dict})
-def rate_swipe(request, swipe_id: int, status: str):
+@router.post("/{swipe_id}/rate", response={200: dict, 404: dict})
+def rate_swipe(request, swipe_id: int, data: SwipeRateIn):
     user = request.user
     if not user.is_authenticated:
         return 404, {"message": "User not authenticated"}
@@ -101,10 +121,10 @@ def rate_swipe(request, swipe_id: int, status: str):
     if swipe.status != EventSwipe.Status.PENDING:
         return 404, {"message": "Swipe already rated"}
 
-    if status not in [EventSwipe.Status.LIKE, EventSwipe.Status.DISLIKE]:
+    if data.status not in [EventSwipe.Status.LIKE, EventSwipe.Status.DISLIKE]:
         return 404, {"message": "Invalid status"}
 
-    swipe.status = status
+    swipe.status = data.status
     swipe.save(update_fields=['status'])
 
-    return swipe
+    return {"status": swipe.status}
