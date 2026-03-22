@@ -3,18 +3,18 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 
 
-class TinderML:
+class SwipeML:
     tokenizer = None
     model = None
 
     @staticmethod
     def init():
-        if TinderML.tokenizer is None:
+        if SwipeML.tokenizer is None:
             print("Loading tokenizer...")
-            TinderML.tokenizer = AutoTokenizer.from_pretrained("cointegrated/LaBSE-en-ru")
-        if TinderML.model is None:
+            SwipeML.tokenizer = AutoTokenizer.from_pretrained("cointegrated/LaBSE-en-ru")
+        if SwipeML.model is None:
             print("Loading model...")
-            TinderML.model = AutoModel.from_pretrained("cointegrated/LaBSE-en-ru")
+            SwipeML.model = AutoModel.from_pretrained("cointegrated/LaBSE-en-ru")
 
     @staticmethod
     def get_embeddings(texts: list | str, max_length=256) -> np.ndarray:
@@ -22,11 +22,11 @@ class TinderML:
         if is_str:
             texts = [texts]
 
-        TinderML.init()
+        SwipeML.init()
 
-        encoded_input = TinderML.tokenizer(texts, padding=True, truncation=True, max_length=max_length, return_tensors='pt')
+        encoded_input = SwipeML.tokenizer(texts, padding=True, truncation=True, max_length=max_length, return_tensors='pt')
         with torch.no_grad():
-            model_output = TinderML.model(**encoded_input)
+            model_output = SwipeML.model(**encoded_input)
         embeddings = model_output.pooler_output
         embeddings = torch.nn.functional.normalize(embeddings).cpu().numpy()
 

@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'users',
     'events',
     'organizations',
-    'tinder'
+    'swipes',
 ]
 
 MIDDLEWARE = [

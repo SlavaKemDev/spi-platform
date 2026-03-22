@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 
+from swipes.ml import SwipeML
+
 from events.models import *
 from organizations.models import OrganizationMember
 from users.models import *
@@ -319,6 +321,7 @@ def publish_event(request, event_id: int):
         return {"error": "Event is already published"}
 
     event.is_published = True
+    event.embedding = SwipeML.get_embeddings(event.description)
     event.save()
 
     return {
