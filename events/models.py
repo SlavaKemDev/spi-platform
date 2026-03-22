@@ -2,6 +2,17 @@ from django.db import models
 from django.utils import timezone
 
 
+class EventTag(models.Model):
+    name = models.CharField(max_length=50, verbose_name='Название тега')
+
+    class Meta:
+        verbose_name = 'Тег события'
+        verbose_name_plural = 'Теги событий'
+
+    def __str__(self):
+        return self.name
+
+
 class Event(models.Model):
     class Format(models.TextChoices):
         ONLINE = 'online', 'Онлайн'
@@ -10,6 +21,8 @@ class Event(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название', blank=True)
     description = models.TextField(verbose_name='Описание', blank=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
+
+    tags = models.ManyToManyField(EventTag, blank=True, verbose_name='Теги')
 
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
 
