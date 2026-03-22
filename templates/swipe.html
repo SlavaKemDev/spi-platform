@@ -191,7 +191,7 @@
   var FORMAT_LABELS = { online: 'Онлайн', offline: 'Оффлайн' };
 
   var currentSwipe = null;   // { id, status, event: {...} }
-  var nextSwipe = null;      // prefetched next swipe
+  var ratePromise = null;    // pending rate request
   var busy = false;
   var swipeCount = 0;
 
@@ -318,15 +318,6 @@
     actions.style.display = 'flex';
     updateCounter();
 
-    // Next card (behind) — if prefetched
-    if (nextSwipe) {
-      var next = document.createElement('div');
-      next.className = 'swipe-card swipe-card-next';
-      next.id = 'nextCard';
-      next.innerHTML = buildCardHTML(nextSwipe.event);
-      container.appendChild(next);
-    }
-
     // Current card (on top)
     var card = document.createElement('div');
     card.className = 'swipe-card swipe-card-current card-enter';
@@ -410,8 +401,8 @@
     var isRight = dir === 'right';
     var rateStatus = isRight ? 'like' : 'dislike';
 
-    // Send rating to API
-    rateSwipe(currentSwipe.id, rateStatus);
+    // Send rating to API immediately, save promise
+    ratePromise = rateSwipe(currentSwipe.id, rateStatus);
 
     // Show stamp
     card.querySelector('.stamp-like').style.opacity = isRight ? 1 : 0;
@@ -427,10 +418,6 @@
       ? '0 0 60px rgba(34,197,94,.5), 0 0 120px rgba(34,197,94,.2)'
       : '0 0 60px rgba(239,68,68,.5), 0 0 120px rgba(239,68,68,.2)';
     container.insertBefore(ghost, card);
-
-    // Promote next card
-    var next = document.getElementById('nextCard');
-    if (next) next.classList.add('promote');
 
     if (card._cleanup) card._cleanup();
 
@@ -463,28 +450,18 @@
         setTimeout(function () {
           ghost.remove();
           swipeCount++;
-          // Move prefetched next into current, fetch a new next
-          currentSwipe = nextSwipe;
-          nextSwipe = null;
-          busy = false;
-          if (currentSwipe) {
-            renderCard();
-            // Prefetch next card in background
-            fetchNewSwipe().then(function (s) {
-              nextSwipe = s;
-            });
-          } else {
-            // No prefetched card — try to fetch one more
-            fetchNewSwipe().then(function (s) {
-              currentSwipe = s;
-              if (currentSwipe) {
-                renderCard();
-                fetchNewSwipe().then(function (s2) { nextSwipe = s2; });
-              } else {
-                showEmpty();
-              }
-            });
-          }
+          // Wait for rate to finish, THEN fetch next card
+          ratePromise.then(function () {
+            return fetchNewSwipe();
+          }).then(function (s) {
+            currentSwipe = s;
+            busy = false;
+            if (currentSwipe) {
+              renderCard();
+            } else {
+              showEmpty();
+            }
+          });
         }, 500);
       }
     }
@@ -516,21 +493,6 @@
     }
     currentSwipe = swipe;
     renderCard();
-    // Prefetch next card
-    fetchNewSwipe().then(function (s) {
-      nextSwipe = s;
-      // If we have a next card, re-render to show it behind
-      if (nextSwipe && document.getElementById('currentCard')) {
-        var nextEl = document.getElementById('nextCard');
-        if (!nextEl) {
-          var n = document.createElement('div');
-          n.className = 'swipe-card swipe-card-next';
-          n.id = 'nextCard';
-          n.innerHTML = buildCardHTML(nextSwipe.event);
-          container.insertBefore(n, container.firstChild);
-        }
-      }
-    });
   });
 }());
 </script>
