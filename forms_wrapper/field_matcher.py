@@ -1,6 +1,6 @@
 import json
-from llm_api import LLM
-from prefill_url import prefill_url
+from .llm_api import LLM
+from .prefill_url import prefill_url
 
 
 PROMPT = """You are matching form fields to database columns.

@@ -1,5 +1,17 @@
 from django.db import models
 from django.utils import timezone
+from helpers.random_file_name import RandomFileName
+
+
+class EventTag(models.Model):
+    name = models.CharField(max_length=50, verbose_name='Название тега')
+
+    class Meta:
+        verbose_name = 'Тег события'
+        verbose_name_plural = 'Теги событий'
+
+    def __str__(self):
+        return self.name
 
 
 class Event(models.Model):
@@ -11,9 +23,14 @@ class Event(models.Model):
     description = models.TextField(verbose_name='Описание', blank=True)
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
 
+    image = models.ImageField(upload_to=RandomFileName('event_images'), blank=True, null=True, verbose_name='Изображение')
+
+    tags = models.ManyToManyField(EventTag, blank=True, verbose_name='Теги')
+
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
 
     form = models.JSONField(default=list, blank=True, verbose_name='Поля формы регистрации')
+    is_external = models.BooleanField(default=False, verbose_name='Внешняя форма регистрации')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
@@ -47,6 +64,19 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ExternalForm(models.Model):
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='external_form', verbose_name='Внешнее событие')
+    parsed_form = models.JSONField(default=dict, verbose_name='Распарсенная форма (read_form)')
+    field_mapping = models.JSONField(default=dict, blank=True, verbose_name='Маппинг полей формы')
+
+    class Meta:
+        verbose_name = 'Внешняя форма'
+        verbose_name_plural = 'Внешние формы'
+
+    def __str__(self):
+        return f"Внешняя форма для {self.event.title}"
 
 
 class EventRegistration(models.Model):

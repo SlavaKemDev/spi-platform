@@ -1,5 +1,6 @@
 from django.utils import timezone
 from datetime import datetime, timedelta
+from typing import Optional
 
 from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
@@ -9,6 +10,8 @@ from organizations.models import OrganizationMember
 from users.models import *
 
 from .regform import validate_form_schema, validate_form_data
+from forms_wrapper.form_reader import read_form
+from forms_wrapper.field_matcher import match_fields, apply_mapping
 
 router = Router(tags=["Events"])
 
@@ -30,6 +33,7 @@ def get_upcoming_events(request):
             "id": event.id,
             "title": event.title,
             "description": event.description,
+            "image": event.image.url if event.image else None,
             "registration_start": event.registration_start,
             "registration_end": event.registration_end,
             "event_start": event.event_start,
@@ -52,6 +56,9 @@ def register_for_event(request, event_id: int, data: EventRegistrationSchema):
         return {"error": "User is not authenticated"}
 
     event: Event = get_object_or_404(Event, id=event_id)
+
+    if event.is_external:
+        return {"error": "This event uses an external registration form. Use /registration-link to get a prefilled URL."}
 
     if event.registration_start > timezone.now() or event.registration_end < timezone.now():
         return {"error": "Registration for this event is not open"}
@@ -155,7 +162,9 @@ def get_event_details(request, event_id: int):
         "id": event.id,
         "title": event.title,
         "description": event.description,
-        "form": event.form,
+        "image": event.image.url if event.image else None,
+        "is_external": event.is_external,
+        "form": None if event.is_external else event.form,
         "registration_start": event.registration_start,
         "registration_end": event.registration_end,
         "event_start": event.event_start,
@@ -207,9 +216,9 @@ def create_draft_event(request, data: CreateDraftEventSchema):
     if not user.is_authenticated:
         return {"error": "User is not authenticated"}
 
-    organization_member = get_object_or_404(OrganizationMember, user=user, organization_id=data.organization_id)
+    organization_member = OrganizationMember.objects.filter(user=user, organization_id=data.organization_id).first()
     if not organization_member:
-        return {"error": "User is not a member of any organization"}
+        return {"error": "User is not a member of this organization"}
 
     organization = organization_member.organization
 
@@ -235,7 +244,7 @@ class UpdateDraftEventSchema(Schema):
     title: str
     description: str
 
-    form: list
+    form: Optional[list] = None
 
     registration_start: str
     registration_end: str
@@ -256,7 +265,7 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    organization_member = get_object_or_404(OrganizationMember, user=user, organization=event.organization)
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
     if not organization_member:
         return {"error": "User is not a member of the event's organization"}
 
@@ -279,13 +288,15 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
     if event_start >= event_end:
         return {"error": "Event start date must be before event end date"}
 
-    is_valid, err = validate_form_schema(data.form)
-    if not is_valid:
-        return {"error": f"Invalid form schema: {err}"}
+    if not event.is_external:
+        form = data.form or []
+        is_valid, err = validate_form_schema(form)
+        if not is_valid:
+            return {"error": f"Invalid form schema: {err}"}
+        event.form = form
 
     event.title = data.title
     event.description = data.description
-    event.form = data.form
     event.registration_start = registration_start
     event.registration_end = registration_end
     event.event_start = event_start
@@ -301,6 +312,92 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
     }
 
 
+class AttachExternalFormSchema(Schema):
+    url: str
+
+
+@router.post("/{int:event_id}/attach-external-form")
+def attach_external_form(request, event_id: int, data: AttachExternalFormSchema):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    if event.is_published:
+        return {"error": "Cannot attach external form to a published event"}
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+    try:
+        parsed = read_form(data.url)
+    except Exception as e:
+        return {"error": f"Failed to parse form: {e}"}
+
+    db_columns = ["email", "first_name", "last_name", "patronymic", "birth_date"]
+
+    try:
+        result = match_fields(parsed, db_columns)
+    except Exception as e:
+        return {"error": f"Failed to match fields: {e}"}
+
+    ExternalForm.objects.update_or_create(
+        event=event,
+        defaults={
+            "parsed_form": parsed,
+            "field_mapping": result["mapping"],
+        }
+    )
+
+    event.is_external = True
+    event.save()
+
+    return {
+        "message": "External form attached successfully",
+        "manual_fields": result["manual_fields"],
+    }
+
+
+@router.get("/{int:event_id}/registration-link")
+def get_registration_link(request, event_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    if not event.is_external:
+        return {"error": "This event does not use an external form"}
+
+    if not event.is_published:
+        return {"error": "Event is not published"}
+
+    if event.registration_start > timezone.now() or event.registration_end < timezone.now():
+        return {"error": "Registration for this event is not open"}
+
+    try:
+        external_form = event.external_form
+    except ExternalForm.DoesNotExist:
+        return {"error": "External form is not configured for this event"}
+
+    user_profile = {
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "patronymic": user.patronymic,
+        "birth_date": str(user.birth_date),
+    }
+
+    result = apply_mapping(external_form.parsed_form, external_form.field_mapping, user_profile)
+
+    return {
+        "prefill_url": result["prefill_url"],
+        "manual_fields": result["manual_fields"],
+    }
+
+
 @router.post("/{int:event_id}/publish")
 def publish_event(request, event_id: int):
     user = request.user
@@ -309,12 +406,15 @@ def publish_event(request, event_id: int):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    organization_member = get_object_or_404(OrganizationMember, user=user, organization=event.organization)
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
     if not organization_member:
         return {"error": "User is not a member of the event's organization"}
 
     if event.is_published:
         return {"error": "Event is already published"}
+
+    if event.is_external and not ExternalForm.objects.filter(event=event).exists():
+        return {"error": "Cannot publish: external form is not attached"}
 
     event.is_published = True
     event.save()
