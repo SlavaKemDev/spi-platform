@@ -61,8 +61,14 @@
     <!-- My events -->
     <div class="profile-card">
       <h2 class="profile-card-title">📅 Мои события</h2>
-      <div id="myEventsList"><p class="profile-events-loading" style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+      <div id="myEventsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
       <a href="/" class="profile-browse-link">Найти новые события →</a>
+    </div>
+
+    <!-- My organizations -->
+    <div class="profile-card">
+      <h2 class="profile-card-title">🏢 Мои организации</h2>
+      <div id="myOrgsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
     </div>
 
   </div><!-- .profile-grid -->
@@ -171,6 +177,31 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  /* ── Load organizations ──────────────────────────────── */
+  function loadOrganizations() {
+    var list = document.getElementById('myOrgsList');
+    fetch('/api/organizations/my')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Вы не состоите ни в одной организации.</p>';
+          return;
+        }
+        list.innerHTML = data.map(function (org) {
+          var role = org.is_admin ? 'Администратор' : 'Участник';
+          return '<div class="profile-event-item">'
+            + '<span class="profile-event-emoji">🏢</span>'
+            + '<div>'
+            + '<a href="/organizations/' + org.id + '/" class="profile-event-link">' + escHtml(org.name) + '</a>'
+            + '<div class="profile-event-meta">' + role + '</div>'
+            + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить организации.</p>';
+      });
+  }
+
   /* ── Render profile from user object ──────────────────── */
   function renderProfile(user) {
     document.getElementById('profileLoading').style.display = 'none';
@@ -197,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (d && d.id) {
         renderProfile(d);
         loadRegistrations();
+        loadOrganizations();
       } else {
         window.location.href = '/auth/';
       }

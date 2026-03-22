@@ -26,22 +26,23 @@
 
     if (!track || !btnPrev || !btnNext || !clip) return;
 
-    var cards   = Array.from(track.children);
     var GAP_PX  = 24;
     var pixelOffset = 0;
 
+    function cards() { return Array.from(track.children); }
+
     function cardWidth() {
-      return cards[0] ? cards[0].getBoundingClientRect().width : 0;
+      var c = cards();
+      return c[0] ? c[0].getBoundingClientRect().width : 0;
     }
 
     function maxOffset() {
       var cw = cardWidth();
       if (!cw) return 0;
-      // Account for clip's horizontal padding: the track starts at paddingLeft offset,
-      // so the effective viewport shifts. Add both paddings back to allow full scroll.
+      var numCards = cards().length;
       var cs = window.getComputedStyle(clip);
       var padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-      return Math.max(0, cards.length * (cw + GAP_PX) - GAP_PX - clip.offsetWidth + padH);
+      return Math.max(0, numCards * (cw + GAP_PX) - GAP_PX - clip.offsetWidth + padH);
     }
 
     function applyOffset(offset, withTransition) {

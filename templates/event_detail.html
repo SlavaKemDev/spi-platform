@@ -82,7 +82,7 @@
 
       <div class="detail-actions">
         <a href="/" class="btn-back">← Назад к событиям</a>
-        <a href="/organizer/{{ event.id }}/" class="btn-organizer">🏢 {{ event.org }}</a>
+        <a href="/organizations/{{ event.org_id }}/" class="btn-organizer">🏢 {{ event.org }}</a>
         <button class="btn-register" id="registerBtn">Зарегистрироваться</button>
       </div>
       <p id="registerMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
@@ -149,11 +149,6 @@
   }
 
   btn.addEventListener('click', function () {
-    var user = UniSphereAuth.getUser();
-    if (!user) {
-      window.location.href = '/auth/?next=/events/' + EVENT_ID + '/';
-      return;
-    }
     btn.disabled = true;
     btn.textContent = 'Регистрация...';
 

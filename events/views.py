@@ -137,6 +137,7 @@ def event_detail(request, event_id):
         ),
         'location': ev.location,
         'org': ev.organization.name,
+        'org_id': ev.organization_id,
         'desc': ev.description,
         'format': ev.format,
     }
@@ -312,20 +313,20 @@ MOCK_ORGANIZERS = {
 }
 
 
-def organizer_page(request, event_id=None):
-    ev = get_object_or_404(Event, pk=event_id, is_published=True)
-    org = ev.organization
-    org_events = Event.objects.filter(organization=org, is_published=True).order_by('event_start')
+def _build_organizer_context(org):
+    org_events = Event.objects.filter(organization=org).order_by('event_start')
     events_list = [
         {
             'emoji': '📅',
             'event_id': e.id,
             'title': e.title,
             'date': date_format(e.event_start, 'j E Y'),
+            'is_published': e.is_published,
         }
         for e in org_events
     ]
-    organizer = {
+    return {
+        'id': org.id,
         'name': org.name,
         'emoji': '🏢',
         'tagline': '',
@@ -333,7 +334,23 @@ def organizer_page(request, event_id=None):
         'about': '',
         'events': events_list,
     }
+
+
+def organizer_page(request, event_id=None):
+    ev = get_object_or_404(Event, pk=event_id)
+    organizer = _build_organizer_context(ev.organization)
     return render(request, 'organizer.html', {'organizer': organizer})
+
+
+def organization_page(request, org_id):
+    org = get_object_or_404(Organization, pk=org_id)
+    organizer = _build_organizer_context(org)
+    return render(request, 'organizer.html', {'organizer': organizer})
+
+
+def event_edit_page(request, event_id):
+    ev = get_object_or_404(Event, pk=event_id)
+    return render(request, 'event_edit.html', {'event_id': ev.id, 'org_id': ev.organization_id})
 
 
 def about_page(request):

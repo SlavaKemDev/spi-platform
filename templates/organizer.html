@@ -10,6 +10,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    .event-unpublished { border-color: #e57373 !important; }
+    .event-unpublished-badge {
+      font-size: .72rem; font-weight: 700; color: #b91c1c; background: #fee2e2;
+      border-radius: 6px; padding: 1px 7px; margin-left: 6px; white-space: nowrap;
+    }
+    [data-theme="dark"] .event-unpublished { border-color: #f87171 !important; }
+    [data-theme="dark"] .event-unpublished-badge { background: #3f0f0f; color: #f87171; }
+    .event-edit-link {
+      font-size: .82rem; color: var(--accent); text-decoration: none; font-weight: 600;
+      margin-left: auto; white-space: nowrap; flex-shrink: 0;
+    }
+    .event-edit-link:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
 
@@ -51,23 +65,19 @@
 
       {% if organizer.events %}
       <h2 class="org-section-title">Мероприятия организатора</h2>
-      <ul class="org-events-list">
+      <ul class="org-events-list" id="orgEventsList">
         {% for ev in organizer.events %}
-        <li>
-          {% if ev.event_id %}
-          <a href="/events/{{ ev.event_id }}/" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;width:100%">
+        <li{% if not ev.is_published %} class="event-unpublished"{% endif %}>
+          <a href="{% if ev.is_published %}/events/{{ ev.event_id }}/{% else %}/events/{{ ev.event_id }}/edit/{% endif %}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;flex:1;min-width:0">
             <span class="org-event-emoji">{{ ev.emoji }}</span>
             <div style="flex:1;min-width:0">
-              <strong>{{ ev.title }}</strong>
+              <strong>{{ ev.title }}{% if not ev.title %}(Без названия){% endif %}</strong>
+              {% if not ev.is_published %}<span class="event-unpublished-badge">Черновик</span>{% endif %}
               <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
             </div>
           </a>
-          {% else %}
-          <span class="org-event-emoji">{{ ev.emoji }}</span>
-          <div style="flex:1;min-width:0">
-            <strong>{{ ev.title }}</strong>
-            <br><span style="font-size:.82rem;color:var(--muted)">{{ ev.date }}</span>
-          </div>
+          {% if not ev.is_published %}
+          <a href="/events/{{ ev.event_id }}/edit/" class="event-edit-link">Редактировать</a>
           {% endif %}
         </li>
         {% endfor %}
@@ -80,9 +90,64 @@
     </div>
 
   </div>
+
+  <!-- Create event card (visible only for org members) -->
+  <div class="org-card" id="createEventCard" style="display:none;margin-top:24px">
+    <div class="org-body">
+      <h2 class="org-section-title" style="margin-top:0">Создать событие</h2>
+      <p class="org-desc" style="margin-bottom:16px">Создайте черновик нового мероприятия для этой организации.</p>
+      <button class="btn-register" id="createEventBtn">Создать событие</button>
+      <p id="createEventMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
+    </div>
+  </div>
 </div>
 
 <script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
+<script>
+(function () {
+  var ORG_ID = {{ organizer.id }};
+
+  /* Check if current user is a member of this org */
+  fetch('/api/organizations/' + ORG_ID)
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (data) {
+      if (data.status === 'admin' || data.status === 'member') {
+        document.getElementById('createEventCard').style.display = 'block';
+      }
+    })
+    .catch(function () {});
+
+  var btn = document.getElementById('createEventBtn');
+  var msg = document.getElementById('createEventMsg');
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    btn.textContent = 'Создание...';
+    msg.style.display = 'none';
+
+    UniSphereAuth.post('/api/events/create', { organization_id: ORG_ID })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.event_id) {
+          window.location.href = '/events/' + data.event_id + '/edit/';
+        } else {
+          msg.textContent = data.error || 'Не удалось создать событие.';
+          msg.style.color = '#b91c1c';
+          msg.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Создать событие';
+        }
+      })
+      .catch(function () {
+        msg.textContent = 'Ошибка соединения.';
+        msg.style.color = '#b91c1c';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Создать событие';
+      });
+  });
+}());
+</script>
 </body>
 </html>
