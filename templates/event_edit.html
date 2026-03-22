@@ -55,8 +55,9 @@
       font-size: .88rem; font-weight: 500; color: var(--text); cursor: pointer;
       display: flex; align-items: center; gap: 6px; flex: 1;
     }
-    .profile-field-toggle .toggle-hint {
+    .profile-field-toggle .req-label {
       font-size: .78rem; color: var(--muted); margin-left: auto;
+      display: flex; align-items: center; gap: 4px; cursor: pointer; flex: none;
     }
     .toggle-switch {
       position: relative; width: 40px; height: 22px; flex-shrink: 0;
@@ -150,7 +151,7 @@
   <a href="/" class="logo">
     <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
-  <div class="search-wrap"></div>
+  <a href="/swipe/" class="swipe-banner" title="Свайп-режим">Посвайпаем?</a>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
   <a href="/profile/" class="account-btn" id="accountBtn">?</a>
 </header>
@@ -218,27 +219,39 @@
       <!-- Internal form section -->
       <div id="internalFormSection">
         <div class="edit-field">
-          <label class="edit-label">Данные из личного кабинета</label>
+          <label class="edit-label">Поля для регистрации</label>
           <div class="fields-list" id="profileFieldsList">
             <div class="profile-field-toggle">
               <label><span class="toggle-switch"><input type="checkbox" checked data-profile="first_name"><span class="toggle-slider"></span></span> Имя</label>
-              <span class="toggle-hint">first_name</span>
+              <label class="req-label"><input type="checkbox" checked data-profile-req="first_name"> Обяз.</label>
             </div>
             <div class="profile-field-toggle">
               <label><span class="toggle-switch"><input type="checkbox" checked data-profile="last_name"><span class="toggle-slider"></span></span> Фамилия</label>
-              <span class="toggle-hint">last_name</span>
+              <label class="req-label"><input type="checkbox" checked data-profile-req="last_name"> Обяз.</label>
             </div>
             <div class="profile-field-toggle">
               <label><span class="toggle-switch"><input type="checkbox" checked data-profile="email"><span class="toggle-slider"></span></span> Почта</label>
-              <span class="toggle-hint">email</span>
+              <label class="req-label"><input type="checkbox" checked data-profile-req="email"> Обяз.</label>
             </div>
             <div class="profile-field-toggle">
               <label><span class="toggle-switch"><input type="checkbox" data-profile="patronymic"><span class="toggle-slider"></span></span> Отчество</label>
-              <span class="toggle-hint">patronymic</span>
+              <label class="req-label"><input type="checkbox" data-profile-req="patronymic"> Обяз.</label>
             </div>
             <div class="profile-field-toggle">
               <label><span class="toggle-switch"><input type="checkbox" data-profile="birth_date"><span class="toggle-slider"></span></span> Дата рождения</label>
-              <span class="toggle-hint">birth_date</span>
+              <label class="req-label"><input type="checkbox" data-profile-req="birth_date"> Обяз.</label>
+            </div>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" data-profile="university"><span class="toggle-slider"></span></span> ВУЗ</label>
+              <label class="req-label"><input type="checkbox" data-profile-req="university"> Обяз.</label>
+            </div>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" data-profile="faculty"><span class="toggle-slider"></span></span> Факультет</label>
+              <label class="req-label"><input type="checkbox" data-profile-req="faculty"> Обяз.</label>
+            </div>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" data-profile="course"><span class="toggle-slider"></span></span> Курс</label>
+              <label class="req-label"><input type="checkbox" data-profile-req="course"> Обяз.</label>
             </div>
           </div>
         </div>
@@ -312,6 +325,9 @@
     email:      { label: 'Почта', type: 'text' },
     patronymic: { label: 'Отчество', type: 'text' },
     birth_date: { label: 'Дата рождения', type: 'text' },
+    university: { label: 'ВУЗ', type: 'text' },
+    faculty:    { label: 'Факультет', type: 'text' },
+    course:     { label: 'Курс', type: 'text' },
   };
 
   function getEnabledProfileFields() {
@@ -321,7 +337,9 @@
       if (cb.checked) {
         var name = cb.dataset.profile;
         var pf = PROFILE_FIELDS[name];
-        fields.push({ name: name, label: pf.label, type: pf.type, required: true });
+        var reqCb = document.querySelector('[data-profile-req="' + name + '"]');
+        var isReq = reqCb ? reqCb.checked : true;
+        fields.push({ name: name, label: pf.label, type: pf.type, required: isReq });
       }
     });
     return fields;
@@ -396,6 +414,15 @@
   /* ── External form attach ────────────────────────────── */
   var externalAttached = false;
 
+  /* Loading dots animation helper */
+  function startLoadingDots(btn, base) {
+    var dotCount = 0;
+    return setInterval(function () {
+      dotCount = (dotCount % 3) + 1;
+      btn.textContent = base + '.'.repeat(dotCount);
+    }, 400);
+  }
+
   document.getElementById('attachFormBtn').addEventListener('click', function () {
     var url = document.getElementById('externalUrl').value.trim();
     var statusEl = document.getElementById('externalStatus');
@@ -406,7 +433,8 @@
       return;
     }
     var btn = this;
-    btn.disabled = true; btn.textContent = 'Привязка...';
+    btn.disabled = true;
+    var dotsInterval = startLoadingDots(btn, 'Привязка');
     statusEl.style.display = 'none';
 
     UniSphereAuth.post('/api/events/' + EVENT_ID + '/attach-external-form', { url: url })
@@ -431,7 +459,7 @@
         statusEl.textContent = 'Ошибка соединения.';
         statusEl.style.display = 'block';
       })
-      .finally(function () { btn.disabled = false; btn.textContent = 'Привязать'; });
+      .finally(function () { clearInterval(dotsInterval); btn.disabled = false; btn.textContent = 'Привязать'; });
   });
 
   /* ── Load event data ─────────────────────────────────── */
@@ -482,12 +510,20 @@
         setFormType('internal');
         // Parse existing form fields — separate profile fields from custom fields
         var allFields = Array.isArray(data.form) ? data.form : [];
-        var PROFILE_NAMES = { first_name:1, last_name:1, email:1, patronymic:1, birth_date:1 };
+        var PROFILE_NAMES = { first_name:1, last_name:1, email:1, patronymic:1, birth_date:1, university:1, faculty:1, course:1 };
 
         // Turn off all profile toggles first, then enable only those present
-        Object.keys(PROFILE_FIELDS).forEach(function (k) { setProfileFieldState(k, false); });
+        Object.keys(PROFILE_FIELDS).forEach(function (k) {
+          setProfileFieldState(k, false);
+          var reqCb = document.querySelector('[data-profile-req="' + k + '"]');
+          if (reqCb) reqCb.checked = false;
+        });
         allFields.forEach(function (f) {
-          if (PROFILE_NAMES[f.name]) setProfileFieldState(f.name, true);
+          if (PROFILE_NAMES[f.name]) {
+            setProfileFieldState(f.name, true);
+            var reqCb = document.querySelector('[data-profile-req="' + f.name + '"]');
+            if (reqCb) reqCb.checked = !!f.required;
+          }
         });
 
         formFields = allFields.filter(function (f) { return !PROFILE_NAMES[f.name]; });
@@ -503,9 +539,11 @@
         for (var k = 0; k < inputs.length; k++) inputs[k].disabled = true;
         document.getElementById('addFieldBtn').style.display = 'none';
         document.getElementById('attachFormBtn').disabled = true;
-        // Disable profile toggles
+        // Disable profile toggles and required checkboxes
         var toggles = document.querySelectorAll('[data-profile]');
         for (var j = 0; j < toggles.length; j++) toggles[j].disabled = true;
+        var reqToggles = document.querySelectorAll('[data-profile-req]');
+        for (var j = 0; j < reqToggles.length; j++) reqToggles[j].disabled = true;
       } else {
         document.getElementById('publishBtn').style.display = 'inline-block';
       }

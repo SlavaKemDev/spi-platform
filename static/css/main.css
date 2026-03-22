@@ -67,42 +67,31 @@ html, body {
   flex-shrink: 0;
 }
 
-.search-wrap {
+.swipe-banner {
   flex: 1;
+  max-width: 260px;
+  margin: 0 auto;
+  height: 38px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.search-input {
-  flex: 1;
-  height: 42px;
+  justify-content: center;
   border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 0 16px;
-  font-size: .95rem;
-  color: var(--text);
-  background: var(--bg);
-  outline: none;
-  transition: border-color .2s, background .25s, color .25s;
-}
-.search-input:focus { border-color: var(--accent); background: var(--card-bg); }
-.search-input::placeholder { color: var(--muted); }
-
-.filter-btn {
-  width: 42px; height: 42px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  border-radius: 20px;
+  padding: 0 20px;
+  font-size: .88rem;
+  font-weight: 600;
   color: var(--accent);
-  transition: background .2s, border-color .2s;
-  flex-shrink: 0;
+  background: var(--bg);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, box-shadow .2s, transform .15s;
 }
-.filter-btn:hover { background: var(--accent-l); border-color: var(--accent); }
+.swipe-banner:hover {
+  border-color: var(--accent);
+  background: var(--accent-l);
+  box-shadow: 0 2px 12px rgba(99,102,241,.15);
+  transform: scale(1.03);
+}
 
 /* ─── Theme Toggle ─────────────────────────────────────── */
 .theme-btn {

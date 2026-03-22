@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 
 from core.api import api
 from users.views import user_profile, auth_page, profile_page
-from events.views import home, event_detail, organizer_page, organization_page, event_edit_page, about_page
+from events.views import home, event_detail, organizer_page, organization_page, event_edit_page, about_page, swipe_page
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,6 +33,7 @@ urlpatterns = [
     path('organizer/<int:event_id>/', organizer_page, name='organizer_page'),
     path('organizations/<int:org_id>/', organization_page, name='organization_page'),
     path('about/', about_page, name='about_page'),
+    path('swipe/', swipe_page, name='swipe_page'),
     path('auth/', auth_page, name='auth'),
     path('profile/', profile_page, name='profile')
 ]

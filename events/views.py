@@ -355,3 +355,7 @@ def event_edit_page(request, event_id):
 
 def about_page(request):
     return render(request, 'about.html')
+
+
+def swipe_page(request):
+    return render(request, 'swipe.html')
