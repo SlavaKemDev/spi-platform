@@ -1,33 +1,13 @@
 /**
  * UniSphere Auth Helper
  *
- * Hybrid auth: tries real API (/api/users/me) first, falls back to sessionStorage.
- * sessionStorage key: 'us_user' → { id, first_name, last_name, email, is_demo? }
- *
- * To replace with real Django auth later:
- *  - Keep the API calls as-is — they already point to the real backend.
- *  - Remove the demo-fallback catch blocks in auth.html.
- *  - Optionally add @login_required to views that need server-side protection.
+ * Real auth only: checks /api/users/me via Django session.
+ * No sessionStorage, no demo fallback.
  */
 (function () {
   'use strict';
 
-  var KEY = 'us_user';
-
   var Auth = {
-
-    getUser: function () {
-      try { return JSON.parse(sessionStorage.getItem(KEY)) || null; }
-      catch (e) { return null; }
-    },
-
-    setUser: function (u) {
-      sessionStorage.setItem(KEY, JSON.stringify(u));
-    },
-
-    clearUser: function () {
-      sessionStorage.removeItem(KEY);
-    },
 
     /* Build display initials from user object */
     initials: function (u) {
@@ -48,18 +28,28 @@
       var btn = document.getElementById('accountBtn');
       if (!btn) return;
 
-      /* 1. Fast path: sessionStorage */
-      var user = Auth.getUser();
-      if (user) { Auth._applyBtn(btn, user); return; }
-
-      /* 2. Real API check */
       fetch('/api/users/me')
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (d) {
-          if (d && d.id) { Auth.setUser(d); Auth._applyBtn(btn, d); }
+          if (d && d.id) { Auth._applyBtn(btn, d); }
         })
         .catch(function () { /* not logged in — keep door icon */ });
     }
+  };
+
+  /* Read Django's csrftoken cookie */
+  Auth.csrfToken = function () {
+    var match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  };
+
+  /* Convenience POST with CSRF header pre-set */
+  Auth.post = function (url, body) {
+    return fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': Auth.csrfToken() },
+      body:    JSON.stringify(body),
+    });
   };
 
   window.UniSphereAuth = Auth;

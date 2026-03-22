@@ -1,5 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import Http404
+from django.utils.dateformat import format as date_format
+
+from events.models import Event
+from organizations.models import Organization
 
 MOCK_EVENTS = {
     1: {
@@ -122,9 +126,21 @@ def home(request):
 
 
 def event_detail(request, event_id):
-    event = MOCK_EVENTS.get(event_id)
-    if not event:
-        raise Http404
+    ev = get_object_or_404(Event, pk=event_id, is_published=True)
+    event = {
+        'id': ev.id,
+        'emoji': '📅',
+        'title': ev.title,
+        'date': (
+            date_format(ev.event_start, 'j E Y, H:i')
+            + (' — ' + date_format(ev.event_end, 'j E Y, H:i') if ev.event_end else '')
+        ),
+        'location': ev.location,
+        'org': ev.organization.name,
+        'org_id': ev.organization_id,
+        'desc': ev.description,
+        'format': ev.format,
+    }
     return render(request, 'event_detail.html', {'event': event})
 
 
@@ -297,11 +313,44 @@ MOCK_ORGANIZERS = {
 }
 
 
+def _build_organizer_context(org):
+    org_events = Event.objects.filter(organization=org).order_by('event_start')
+    events_list = [
+        {
+            'emoji': '📅',
+            'event_id': e.id,
+            'title': e.title,
+            'date': date_format(e.event_start, 'j E Y'),
+            'is_published': e.is_published,
+        }
+        for e in org_events
+    ]
+    return {
+        'id': org.id,
+        'name': org.name,
+        'emoji': '🏢',
+        'tagline': '',
+        'desc': org.description,
+        'about': '',
+        'events': events_list,
+    }
+
+
 def organizer_page(request, event_id=None):
-    organizer = MOCK_ORGANIZERS.get(event_id)
-    if not organizer:
-        raise Http404
+    ev = get_object_or_404(Event, pk=event_id)
+    organizer = _build_organizer_context(ev.organization)
     return render(request, 'organizer.html', {'organizer': organizer})
+
+
+def organization_page(request, org_id):
+    org = get_object_or_404(Organization, pk=org_id)
+    organizer = _build_organizer_context(org)
+    return render(request, 'organizer.html', {'organizer': organizer})
+
+
+def event_edit_page(request, event_id):
+    ev = get_object_or_404(Event, pk=event_id)
+    return render(request, 'event_edit.html', {'event_id': ev.id, 'org_id': ev.organization_id})
 
 
 def about_page(request):

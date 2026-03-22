@@ -42,6 +42,30 @@ def get_my_organizations(request):
     return organizations
 
 
+@router.get("/{int:organization_id}/members")
+def get_organization_members(request, organization_id: int):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    organization = get_object_or_404(Organization, id=organization_id)
+
+    requester = OrganizationMember.objects.filter(user=user, organization=organization).first()
+    if not requester:
+        return {"error": "User is not a member of this organization"}
+
+    members = []
+    for m in OrganizationMember.objects.filter(organization=organization).select_related('user'):
+        members.append({
+            "user_id": m.user.id,
+            "email": m.user.email,
+            "first_name": m.user.first_name,
+            "last_name": m.user.last_name,
+            "is_admin": m.is_admin,
+        })
+    return members
+
+
 class AddMemberSchema(Schema):
     user_id: int
 

@@ -47,7 +47,6 @@
       <div class="profile-info">
         <h1 class="profile-name" id="profileName">Загрузка...</h1>
         <p class="profile-email-text" id="profileEmail"></p>
-        <span class="profile-demo-badge" id="demoBadge">Демо-режим</span>
       </div>
       <div class="profile-actions">
         <a href="/" class="btn-back">← На главную</a>
@@ -56,53 +55,20 @@
     </div>
   </div>
 
-  <!-- Events + Favorites -->
+  <!-- Events -->
   <div class="profile-grid">
 
     <!-- My events -->
     <div class="profile-card">
       <h2 class="profile-card-title">📅 Мои события</h2>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🚀</span>
-        <div>
-          <a href="/events/1/" class="profile-event-link">Хакатон по AI и машинному обучению</a>
-          <div class="profile-event-meta">5–7 апреля 2026 &middot; <span class="status-registered">Зарегистрирован</span></div>
-        </div>
-      </div>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🎨</span>
-        <div>
-          <a href="/events/5/" class="profile-event-link">Воркшоп по UX/UI Design Thinking</a>
-          <div class="profile-event-meta">2 мая 2026 &middot; <span class="status-pending">В обработке</span></div>
-        </div>
-      </div>
-
+      <div id="myEventsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
       <a href="/" class="profile-browse-link">Найти новые события →</a>
     </div>
 
-    <!-- Favorites -->
+    <!-- My organizations -->
     <div class="profile-card">
-      <h2 class="profile-card-title">❤️ Избранное</h2>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">📊</span>
-        <div>
-          <a href="/events/6/" class="profile-event-link">Конференция: Data Science в бизнесе</a>
-          <div class="profile-event-meta">15 мая 2026</div>
-        </div>
-      </div>
-
-      <div class="profile-event-item">
-        <span class="profile-event-emoji">🔒</span>
-        <div>
-          <a href="/events/7/" class="profile-event-link">CTF: Соревнование по кибербезопасности</a>
-          <div class="profile-event-meta">22–23 мая 2026</div>
-        </div>
-      </div>
-
-      <a href="/" class="profile-browse-link">Обзор всех событий →</a>
+      <h2 class="profile-card-title">🏢 Мои организации</h2>
+      <div id="myOrgsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
     </div>
 
   </div><!-- .profile-grid -->
@@ -123,14 +89,10 @@
         <label class="profile-field-label">Email</label>
         <input type="email" id="settingEmail" class="profile-input" disabled>
       </div>
-      <div class="profile-field">
-        <label class="profile-field-label">Университет</label>
-        <input type="text" id="settingUniversity" class="profile-input" placeholder="Ваш университет">
-      </div>
     </div>
     <div class="profile-settings-footer">
       <button class="card-btn" id="saveSettingsBtn">Сохранить изменения</button>
-      <p class="profile-settings-note">Изменения сохраняются локально. Синхронизация с сервером будет доступна после подключения серверной авторизации.</p>
+      <p class="profile-settings-note" id="settingsNote" style="display:none"></p>
     </div>
   </div>
 
@@ -141,58 +103,135 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-  /* ── Bind buttons (always, regardless of auth source) ── */
+  var STATUS_LABELS = {
+    'pending':  '<span class="status-pending">На рассмотрении</span>',
+    'approved': '<span class="status-registered">Подтверждён</span>',
+    'rejected': '<span class="status-rejected">Отклонён</span>',
+  };
+
+  /* ── Logout ───────────────────────────────────────────── */
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    UniSphereAuth.clearUser();
-    fetch('/api/users/logout', { method: 'POST' }).catch(function () {});
-    window.location.href = '/';
+    UniSphereAuth.post('/api/users/logout', {})
+      .finally(function () { window.location.href = '/'; });
   });
 
+  /* ── Save settings ────────────────────────────────────── */
   document.getElementById('saveSettingsBtn').addEventListener('click', function () {
-    var u = UniSphereAuth.getUser();
-    if (!u) return;
-    u.first_name = document.getElementById('settingFirstName').value.trim();
-    u.last_name  = document.getElementById('settingLastName').value.trim();
-    UniSphereAuth.setUser(u);
-    renderProfile(u);
-    var btn = this;
-    btn.textContent = '✓ Сохранено';
-    setTimeout(function () { btn.textContent = 'Сохранить изменения'; }, 2000);
+    var btn  = this;
+    var note = document.getElementById('settingsNote');
+    var firstName = document.getElementById('settingFirstName').value.trim();
+    var lastName  = document.getElementById('settingLastName').value.trim();
+
+    btn.disabled = true;
+    UniSphereAuth.post('/api/users/me/update', { first_name: firstName, last_name: lastName })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function () {
+        return fetch('/api/users/me').then(function (r) { return r.json(); });
+      })
+      .then(function (user) {
+        if (user && user.id) renderProfile(user);
+        showNote(note, 'Изменения сохранены', false);
+      })
+      .catch(function () {
+        showNote(note, 'Не удалось сохранить изменения', true);
+      })
+      .finally(function () {
+        btn.disabled = false;
+        setTimeout(function () { note.style.display = 'none'; }, 3000);
+      });
   });
+
+  function showNote(el, text, isError) {
+    el.textContent = text;
+    el.style.color = isError ? 'var(--error, #b91c1c)' : 'var(--muted)';
+    el.style.display = 'block';
+  }
+
+  /* ── Load registrations ───────────────────────────────── */
+  function loadRegistrations() {
+    var list = document.getElementById('myEventsList');
+    fetch('/api/events/registrations')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Вы пока не зарегистрированы ни на одно событие.</p>';
+          return;
+        }
+        list.innerHTML = data.map(function (reg) {
+          var statusHtml = STATUS_LABELS[reg.status] || '<span class="status-pending">' + (reg.status || '') + '</span>';
+          var date = reg.registered_at ? new Date(reg.registered_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          return '<div class="profile-event-item">'
+            + '<span class="profile-event-emoji">📅</span>'
+            + '<div>'
+            + '<a href="/events/' + reg.id + '/" class="profile-event-link">' + escHtml(reg.title) + '</a>'
+            + '<div class="profile-event-meta">' + (date ? date + ' &middot; ' : '') + statusHtml + '</div>'
+            + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить события.</p>';
+      });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Load organizations ──────────────────────────────── */
+  function loadOrganizations() {
+    var list = document.getElementById('myOrgsList');
+    fetch('/api/organizations/my')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Вы не состоите ни в одной организации.</p>';
+          return;
+        }
+        list.innerHTML = data.map(function (org) {
+          var role = org.is_admin ? 'Администратор' : 'Участник';
+          return '<div class="profile-event-item">'
+            + '<span class="profile-event-emoji">🏢</span>'
+            + '<div>'
+            + '<a href="/organizations/' + org.id + '/" class="profile-event-link">' + escHtml(org.name) + '</a>'
+            + '<div class="profile-event-meta">' + role + '</div>'
+            + '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить организации.</p>';
+      });
+  }
 
   /* ── Render profile from user object ──────────────────── */
   function renderProfile(user) {
     document.getElementById('profileLoading').style.display = 'none';
     document.getElementById('profileWrap').style.display  = 'flex';
 
-    var fn  = user.first_name || '';
-    var ln  = user.last_name  || '';
+    var fn   = user.first_name || '';
+    var ln   = user.last_name  || '';
     var name = [fn, ln].filter(Boolean).join(' ') || user.email || 'Пользователь';
     var ini  = UniSphereAuth.initials(user);
 
-    document.getElementById('profileAvatar').textContent   = ini;
-    document.getElementById('profileName').textContent     = name;
-    document.getElementById('profileEmail').textContent    = user.email || '';
-    document.getElementById('accountBtn').textContent      = ini;
-    document.getElementById('settingFirstName').value      = fn;
-    document.getElementById('settingLastName').value       = ln;
-    document.getElementById('settingEmail').value          = user.email || '';
-
-    if (user.is_demo) {
-      document.getElementById('demoBadge').style.display = 'inline-block';
-    }
+    document.getElementById('profileAvatar').textContent = ini;
+    document.getElementById('profileName').textContent   = name;
+    document.getElementById('profileEmail').textContent  = user.email || '';
+    document.getElementById('accountBtn').textContent    = ini;
+    document.getElementById('settingFirstName').value    = fn;
+    document.getElementById('settingLastName').value     = ln;
+    document.getElementById('settingEmail').value        = user.email || '';
   }
 
   /* ── Auth check ───────────────────────────────────────── */
-  var user = UniSphereAuth.getUser();
-  if (user) { renderProfile(user); return; }
-
-  /* Not in sessionStorage → try real API */
   fetch('/api/users/me')
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
     .then(function (d) {
-      if (d && d.id) { UniSphereAuth.setUser(d); renderProfile(d); }
-      else { window.location.href = '/auth/'; }
+      if (d && d.id) {
+        renderProfile(d);
+        loadRegistrations();
+        loadOrganizations();
+      } else {
+        window.location.href = '/auth/';
+      }
     })
     .catch(function () { window.location.href = '/auth/'; });
 

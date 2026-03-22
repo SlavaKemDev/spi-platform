@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UniSphere — Вход</title>
   <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
-  <!-- Early redirect if already logged in (prevents form flash) -->
+  <!-- Redirect if already logged in (server session check) -->
   <script>
-    try {
-      if (sessionStorage.getItem('us_user')) { window.location.replace('/profile/'); }
-    } catch(e) {}
+    fetch('/api/users/me').then(function(r){
+      if(r.ok) return r.json(); throw 0;
+    }).then(function(d){
+      if(d && d.id) window.location.replace('/profile/');
+    }).catch(function(){});
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -171,8 +173,6 @@
       <p class="auth-demo-notice">
         Нет аккаунта?
         <a id="loginToRegister">Зарегистрироваться</a>
-        &nbsp;·&nbsp;
-        <a id="loginDemo">Войти как гость</a>
       </p>
     </div>
 
@@ -184,6 +184,11 @@
           <label class="auth-label" for="regName">Имя</label>
           <input class="auth-input" type="text" id="regName" name="first_name"
                  required autocomplete="given-name" placeholder="Иван">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label" for="regLastName">Фамилия</label>
+          <input class="auth-input" type="text" id="regLastName" name="last_name"
+                 required autocomplete="family-name" placeholder="Иванов">
         </div>
         <div class="auth-field">
           <label class="auth-label" for="regEmail">Email</label>
@@ -280,22 +285,6 @@
     window.location.href = '/profile/';
   }
 
-  /* ── Demo / guest login ─────────────────────────────── */
-  function startDemoSession(name, email) {
-    UniSphereAuth.setUser({
-      id:         'demo_' + Date.now(),
-      first_name: name  || 'Гость',
-      last_name:  '',
-      email:      email || 'demo@unisphere.ru',
-      is_demo:    true,
-    });
-    redirectToProfile();
-  }
-
-  document.getElementById('loginDemo').addEventListener('click', function () {
-    startDemoSession('Гость', 'demo@unisphere.ru');
-  });
-
   /* ── LOGIN ──────────────────────────────────────────── */
   document.getElementById('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -313,11 +302,7 @@
     btn.textContent = 'Вход...';
 
     try {
-      var res = await fetch('/api/users/login', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email: email, password: pass }),
-      });
+      var res = await UniSphereAuth.post('/api/users/login', { email: email, password: pass });
 
       if (res.status === 404 || res.status === 401) {
         showMsg('loginMsg', 'Неверный email или пароль.');
@@ -326,15 +311,9 @@
 
       var data = await res.json();
 
-      if (data.success || data.id) {
-        /* Real login succeeded — fetch full profile */
-        try {
-          var me = await fetch('/api/users/me');
-          var user = await me.json();
-          UniSphereAuth.setUser(user);
-        } catch (_) {
-          UniSphereAuth.setUser({ email: email, first_name: email.split('@')[0], last_name: '', id: data.id || 1 });
-        }
+      if (data.error) {
+        showMsg('loginMsg', data.error);
+      } else if (data.success) {
         showMsg('loginMsg', 'Успешный вход! Перенаправляем...', 'success');
         setTimeout(redirectToProfile, 700);
       } else {
@@ -342,9 +321,7 @@
       }
 
     } catch (_) {
-      /* Network error — fall back to demo session */
-      showMsg('loginMsg', 'Сервер недоступен. Создаём демо-сессию...', 'success');
-      setTimeout(function () { startDemoSession(email.split('@')[0], email); }, 800);
+      showMsg('loginMsg', 'Сервер недоступен. Попробуйте позже.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Войти';
@@ -357,12 +334,14 @@
     clearMsg('registerMsg');
 
     var name     = document.getElementById('regName').value.trim();
+    var lastName = document.getElementById('regLastName').value.trim();
     var email    = document.getElementById('regEmail').value.trim();
     var pass     = document.getElementById('regPassword').value;
     var confirm  = document.getElementById('regConfirm').value;
 
     /* Front-end validation */
     if (!name)              { showMsg('registerMsg', 'Введите ваше имя.');           return; }
+    if (!lastName)          { showMsg('registerMsg', 'Введите вашу фамилию.');       return; }
     if (!email)             { showMsg('registerMsg', 'Введите email.');              return; }
     if (pass.length < 6)    { showMsg('registerMsg', 'Пароль минимум 6 символов.');  return; }
     if (pass !== confirm)   { showMsg('registerMsg', 'Пароли не совпадают.');        return; }
@@ -371,10 +350,9 @@
     btn.disabled = true;
     btn.textContent = 'Регистрация...';
 
-    /* Send to real API (extra fields set to defaults for compatibility) */
     var payload = {
       first_name: name,
-      last_name:  '',
+      last_name:  lastName,
       patronymic: '',
       birth_date: '2000-01-01',
       email:      email,
@@ -382,20 +360,12 @@
     };
 
     try {
-      var res  = await fetch('/api/users/register', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-      });
+      var res  = await UniSphereAuth.post('/api/users/register', payload);
       var data = await res.json();
 
-      if (data.success || data.id) {
-        UniSphereAuth.setUser({
-          id:         data.id || 1,
-          first_name: name,
-          last_name:  '',
-          email:      email,
-        });
+      if (data.error) {
+        showMsg('registerMsg', data.error);
+      } else if (data.success) {
         showMsg('registerMsg', 'Аккаунт создан! Перенаправляем...', 'success');
         setTimeout(redirectToProfile, 700);
       } else {
@@ -403,9 +373,7 @@
       }
 
     } catch (_) {
-      /* Network error — demo session */
-      showMsg('registerMsg', 'Сервер недоступен. Создаём демо-аккаунт...', 'success');
-      setTimeout(function () { startDemoSession(name, email); }, 800);
+      showMsg('registerMsg', 'Сервер недоступен. Попробуйте позже.');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Создать аккаунт';

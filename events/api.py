@@ -18,13 +18,10 @@ router = Router(tags=["Events"])
 
 @router.get("/upcoming")
 def get_upcoming_events(request):
-    user = request.user
-    if not user.is_authenticated:
-        return {"error": "User is not authenticated"}
-
     events = Event.objects.filter(
         registration_start__lte=timezone.now(),
         registration_end__gte=timezone.now(),
+        is_published=True,
     )
 
     events_list = []
@@ -40,6 +37,8 @@ def get_upcoming_events(request):
             "event_end": event.event_end,
             "location": event.location,
             "format": event.format,
+            "organization_id": event.organization_id,
+            "organization_name": event.organization.name,
         })
 
     return events_list
@@ -144,24 +143,21 @@ def get_event_registrations(request, event_id: int):
 @router.get("/{int:event_id}")
 def get_event_details(request, event_id: int):
     user = request.user
-    if not user.is_authenticated:
-        return {"error": "User is not authenticated"}
-
     event: Event = get_object_or_404(Event, id=event_id)
 
-    if EventRegistration.objects.filter(user=user, event=event).exists():
+    my_registration_dict = None
+    if user.is_authenticated and EventRegistration.objects.filter(user=user, event=event).exists():
         my_registration = EventRegistration.objects.get(user=user, event=event)
         my_registration_dict = {
             "registered_at": my_registration.registered_at,
             "status": my_registration.status
         }
-    else:
-        my_registration_dict = None
 
     return {
         "id": event.id,
         "title": event.title,
         "description": event.description,
+        "status": event.status,
         "image": event.image.url if event.image else None,
         "is_external": event.is_external,
         "form": None if event.is_external else event.form,
@@ -171,6 +167,8 @@ def get_event_details(request, event_id: int):
         "event_end": event.event_end,
         "location": event.location,
         "format": event.format,
+        "organization_id": event.organization_id,
+        "organization_name": event.organization.name,
         "my_registration": my_registration_dict
     }
 
