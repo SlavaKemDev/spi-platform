@@ -1,14 +1,17 @@
 from django.utils import timezone
 from datetime import datetime, timedelta
+from typing import Optional
 
 from django.shortcuts import get_object_or_404
-from ninja import Router, Schema
+from ninja import Router, Schema, File
+from ninja.files import UploadedFile
 
 from events.models import *
 from organizations.models import OrganizationMember
 from users.models import *
 
 from .regform import validate_form_schema, validate_form_data
+from .recommender import recommend as _knn_recommend
 
 router = Router(tags=["Events"])
 
@@ -22,7 +25,7 @@ def get_upcoming_events(request):
     events = Event.objects.filter(
         registration_start__lte=timezone.now(),
         registration_end__gte=timezone.now(),
-    )
+    ).select_related('organization')
 
     events_list = []
     for event in events:
@@ -36,6 +39,8 @@ def get_upcoming_events(request):
             "event_end": event.event_end,
             "location": event.location,
             "format": event.format,
+            "categories": event.categories,
+            "access_type": event.access_type,
             "organization_id": event.organization_id,
             "organization_name": event.organization.name,
         })
@@ -122,7 +127,7 @@ def get_event_registrations(request, event_id: int):
         return {"error": "User is not a member of the event's organization"}
 
     registration_list = []
-    for registration in EventRegistration.objects.filter(event=event):
+    for registration in EventRegistration.objects.filter(event=event).select_related('user'):
         registration_list.append({
             "id": registration.id,
             "user_email": registration.user.email,
@@ -144,21 +149,22 @@ def get_event_details(request, event_id: int):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    if EventRegistration.objects.filter(user=user, event=event).exists():
-        my_registration = EventRegistration.objects.get(user=user, event=event)
-        my_registration_dict = {
-            "registered_at": my_registration.registered_at,
-            "status": my_registration.status
-        }
-    else:
-        my_registration_dict = None
+    my_registration = EventRegistration.objects.filter(user=user, event=event).first()
+    my_registration_dict = {
+        "registered_at": my_registration.registered_at,
+        "status": my_registration.status
+    } if my_registration else None
 
     return {
         "id": event.id,
         "title": event.title,
         "description": event.description,
         "form": event.form,
+        "form_type": event.form_type,
+        "form_url": event.form_url,
+        "image_url": event.image.url if event.image else None,
         "status": event.status,
+        "is_published": event.is_published,
         "registration_start": event.registration_start,
         "registration_end": event.registration_end,
         "event_start": event.event_start,
@@ -167,6 +173,8 @@ def get_event_details(request, event_id: int):
         "format": event.format,
         "organization_id": event.organization_id,
         "organization_name": event.organization.name,
+        "categories": event.categories,
+        "access_type": event.access_type,
         "my_registration": my_registration_dict
     }
 
@@ -190,7 +198,6 @@ def review_registration(request, registration_id: int, data: ReviewRegistrationS
     if not organization_member:
         return {"error": "User is not a member of the event's organization"}
 
-
     registration.status = data.status
     registration.save()
 
@@ -199,7 +206,6 @@ def review_registration(request, registration_id: int, data: ReviewRegistrationS
         "registration_id": registration.id,
         "status": registration.status
     }
-
 
 
 class CreateDraftEventSchema(Schema):
@@ -213,8 +219,6 @@ def create_draft_event(request, data: CreateDraftEventSchema):
         return {"error": "User is not authenticated"}
 
     organization_member = get_object_or_404(OrganizationMember, user=user, organization_id=data.organization_id)
-    if not organization_member:
-        return {"error": "User is not a member of any organization"}
 
     organization = organization_member.organization
 
@@ -241,6 +245,8 @@ class UpdateDraftEventSchema(Schema):
     description: str
 
     form: list
+    form_type: str = 'site'
+    form_url: str = ''
 
     registration_start: str
     registration_end: str
@@ -249,8 +255,10 @@ class UpdateDraftEventSchema(Schema):
     event_end: str
 
     location: str
-
     format: str
+
+    categories: list = []
+    access_type: str = 'open'
 
 
 @router.post("/{int:event_id}/update")
@@ -261,9 +269,7 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    organization_member = get_object_or_404(OrganizationMember, user=user, organization=event.organization)
-    if not organization_member:
-        return {"error": "User is not a member of the event's organization"}
+    get_object_or_404(OrganizationMember, user=user, organization=event.organization)
 
     if event.is_published:
         return {"error": "Cannot update a published event"}
@@ -284,25 +290,58 @@ def update_draft_event(request, event_id: int, data: UpdateDraftEventSchema):
     if event_start >= event_end:
         return {"error": "Event start date must be before event end date"}
 
-    is_valid, err = validate_form_schema(data.form)
-    if not is_valid:
-        return {"error": f"Invalid form schema: {err}"}
+    if data.form_type not in ('site', 'yandex', 'google'):
+        return {"error": "Invalid form_type. Use 'site', 'yandex' or 'google'"}
+
+    # Only validate form schema for site type
+    if data.form_type == 'site':
+        is_valid, err = validate_form_schema(data.form)
+        if not is_valid:
+            return {"error": f"Invalid form schema: {err}"}
 
     event.title = data.title
     event.description = data.description
-    event.form = data.form
+    event.form = data.form if data.form_type == 'site' else []
+    event.form_type = data.form_type
+    event.form_url = data.form_url if data.form_type in ('yandex', 'google') else ''
     event.registration_start = registration_start
     event.registration_end = registration_end
     event.event_start = event_start
     event.event_end = event_end
     event.location = data.location
     event.format = data.format
+    event.categories = data.categories
+    event.access_type = data.access_type
 
     event.save()
 
     return {
         "message": "Draft event updated successfully",
         "event_id": event.id
+    }
+
+
+@router.post("/{int:event_id}/upload-image")
+def upload_event_image(request, event_id: int, image: UploadedFile = File(...)):
+    user = request.user
+    if not user.is_authenticated:
+        return {"error": "User is not authenticated"}
+
+    event: Event = get_object_or_404(Event, id=event_id)
+
+    organization_member = OrganizationMember.objects.filter(user=user, organization=event.organization).first()
+    if not organization_member:
+        return {"error": "User is not a member of the event's organization"}
+
+    # Delete old image if exists
+    if event.image:
+        event.image.delete(save=False)
+
+    event.image.save(image.name, image, save=True)
+
+    return {
+        "success": True,
+        "image_url": event.image.url,
     }
 
 
@@ -314,12 +353,13 @@ def publish_event(request, event_id: int):
 
     event: Event = get_object_or_404(Event, id=event_id)
 
-    organization_member = get_object_or_404(OrganizationMember, user=user, organization=event.organization)
-    if not organization_member:
-        return {"error": "User is not a member of the event's organization"}
+    get_object_or_404(OrganizationMember, user=user, organization=event.organization)
 
     if event.is_published:
         return {"error": "Event is already published"}
+
+    if not event.title:
+        return {"error": "Event must have a title before publishing"}
 
     event.is_published = True
     event.save()
@@ -330,3 +370,40 @@ def publish_event(request, event_id: int):
     }
 
 
+@router.get("/recommend")
+def get_recommendation(request, exclude: str = "", interests: str = ""):
+    """
+    Returns the single best recommended event for the current user.
+    exclude   — comma-separated event IDs to skip (session-excluded).
+    interests — comma-separated category tags for onboarding preference.
+    """
+    exclude_ids = []
+    if exclude:
+        for part in exclude.split(','):
+            part = part.strip()
+            if part.isdigit():
+                exclude_ids.append(int(part))
+
+    interest_tags = [t.strip() for t in interests.split(',') if t.strip()] if interests else None
+
+    ranked = _knn_recommend(request.user, exclude_ids=exclude_ids, interest_tags=interest_tags)
+    if not ranked:
+        return {"event": None}
+
+    event, score = ranked[0]
+    return {
+        "event": {
+            "id": event.id,
+            "title": event.title,
+            "description": event.description or '',
+            "format": event.format,
+            "location": event.location,
+            "event_start": event.event_start,
+            "registration_end": event.registration_end,
+            "categories": event.categories,
+            "access_type": event.access_type,
+            "image_url": event.image.url if event.image else None,
+            "organization_name": event.organization.name,
+            "organization_id": event.organization_id,
+        }
+    }

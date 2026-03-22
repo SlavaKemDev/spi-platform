@@ -48,6 +48,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     university = models.ForeignKey(University, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Университет")
+    university_confirmed = models.BooleanField(default=False, verbose_name="Университет подтверждён через email")
+    course = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Курс")
 
     is_active = models.BooleanField(default=True, verbose_name='Активен')
     is_staff = models.BooleanField(default=False, verbose_name='Сотрудник')

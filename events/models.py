@@ -28,6 +28,47 @@ class Event(models.Model):
         verbose_name='Формат',
     )
 
+    class FormType(models.TextChoices):
+        SITE = 'site', 'Шаблон сайта'
+        YANDEX = 'yandex', 'Яндекс Формы'
+        GOOGLE = 'google', 'Google Формы'
+
+    form_type = models.CharField(
+        max_length=10,
+        choices=FormType.choices,
+        default=FormType.SITE,
+        verbose_name='Тип формы регистрации',
+    )
+    form_url = models.URLField(blank=True, verbose_name='Ссылка на внешнюю форму')
+    image = models.FileField(upload_to='event_images/', blank=True, null=True, verbose_name='Изображение')
+
+    class Category(models.TextChoices):
+        IT = 'it', 'IT'
+        HACKATHON = 'hackathon', 'Хакатоны'
+        STARTUP = 'startup', 'Стартапы'
+        NETWORKING = 'networking', 'Нетворкинг'
+        LECTURE = 'lecture', 'Лекции'
+        MASTERCLASS = 'masterclass', 'Мастер-классы'
+        GAMES = 'games', 'Игры'
+        PARTY = 'party', 'Вечеринки'
+        SPORT = 'sport', 'Спорт'
+        SELF_DEV = 'self_dev', 'Саморазвитие'
+        DATING = 'dating', 'Знакомства'
+
+    categories = models.JSONField(default=list, blank=True, verbose_name='Категории')
+
+    class AccessType(models.TextChoices):
+        OPEN = 'open', 'Открытое'
+        UNIVERSITY_ONLY = 'university_only', 'Только для студентов вуза организатора'
+        CLOSED = 'closed', 'Закрытое'
+
+    access_type = models.CharField(
+        max_length=20,
+        choices=AccessType.choices,
+        default=AccessType.OPEN,
+        verbose_name='Тип доступа',
+    )
+
     class Meta:
         verbose_name = 'Событие'
         verbose_name_plural = 'События'

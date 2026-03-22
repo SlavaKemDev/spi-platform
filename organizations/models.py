@@ -4,6 +4,10 @@ from django.db import models
 class Organization(models.Model):
     name = models.CharField(max_length=255, verbose_name='Название')
     description = models.TextField(blank=True, verbose_name='Описание')
+    university = models.ForeignKey(
+        'users.University', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Вуз организатора'
+    )
 
     class Meta:
         verbose_name = 'Организация'

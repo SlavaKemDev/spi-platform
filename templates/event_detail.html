@@ -36,7 +36,13 @@
 <div class="detail-wrap">
   <div class="detail-card">
 
-    <div class="detail-image">{{ event.emoji }}</div>
+    {% if event.image_url %}
+      <div class="detail-image-photo">
+        <img src="{{ event.image_url }}" alt="{{ event.title }}" style="width:100%;height:100%;object-fit:cover;border-radius:18px 18px 0 0;display:block">
+      </div>
+    {% else %}
+      <div class="detail-image">{{ event.emoji }}</div>
+    {% endif %}
 
     <div class="detail-body">
       <h1 class="detail-title">{{ event.title }}</h1>
@@ -75,6 +81,20 @@
         {% elif event.format == "offline" %}
           <span class="card-tag card-tag-offline">Оффлайн</span>
         {% endif %}
+        {% for cat in event.categories %}
+          {% if cat == "it" %}<span class="card-tag card-tag-cat">IT</span>
+          {% elif cat == "hackathon" %}<span class="card-tag card-tag-cat">Хакатон</span>
+          {% elif cat == "startup" %}<span class="card-tag card-tag-cat">Стартап</span>
+          {% elif cat == "networking" %}<span class="card-tag card-tag-cat">Нетворкинг</span>
+          {% elif cat == "lecture" %}<span class="card-tag card-tag-cat">Лекция</span>
+          {% elif cat == "masterclass" %}<span class="card-tag card-tag-cat">Мастер-класс</span>
+          {% elif cat == "games" %}<span class="card-tag card-tag-cat">Игры</span>
+          {% elif cat == "party" %}<span class="card-tag card-tag-cat">Вечеринка</span>
+          {% elif cat == "sport" %}<span class="card-tag card-tag-cat">Спорт</span>
+          {% elif cat == "self_dev" %}<span class="card-tag card-tag-cat">Саморазвитие</span>
+          {% elif cat == "dating" %}<span class="card-tag card-tag-cat">Знакомства</span>
+          {% endif %}
+        {% endfor %}
         <span id="eventStatusTag" style="display:none"></span>
       </div>
 

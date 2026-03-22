@@ -19,6 +19,7 @@
   <a href="/" class="logo">
     <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
   </a>
+  <a href="/sfera/" class="sphere-btn" title="Сфера рекомендаций">Сфера</a>
 
   <div class="search-wrap">
     <input class="search-input" type="text" placeholder="Поиск событий...">
@@ -38,6 +39,37 @@
 <!-- ── Main ───────────────────────────────────────────── -->
 <main class="main">
   <h2 class="section-title">События</h2>
+
+  <!-- Filter panel -->
+  <div id="filterPanel" style="display:none;margin-bottom:16px;background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:20px 20px 16px">
+    <div style="margin-bottom:12px">
+      <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px">Формат</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="cat-chip filter-fmt-chip"><input type="checkbox" value="online" id="fmtOnline"> 💻 Онлайн</label>
+        <label class="cat-chip filter-fmt-chip"><input type="checkbox" value="offline" id="fmtOffline"> 📍 Оффлайн</label>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px">Категории</p>
+      <div class="category-chips" id="filterCatChips">
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="it"> IT</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="hackathon"> Хакатоны</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="startup"> Стартапы</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="networking"> Нетворкинг</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="lecture"> Лекции</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="masterclass"> Мастер-классы</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="games"> Игры</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="party"> Вечеринки</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="sport"> Спорт</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="self_dev"> Саморазвитие</label>
+        <label class="cat-chip"><input type="checkbox" name="filterCat" value="dating"> Знакомства</label>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+      <span id="filterCount" style="font-size:.82rem;color:var(--muted)"></span>
+      <button id="filterResetBtn" style="font-size:.8rem;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">Сбросить фильтры</button>
+    </div>
+  </div>
 
   <div class="carousel-outer">
     <button class="carousel-arrow prev" aria-label="Назад">
@@ -80,6 +112,21 @@
   </div><!-- .carousel-outer -->
 </main>
 
+<!-- ── Recommendation widget ──────────────────────────── -->
+<div id="recWidget" class="rec-widget" style="display:none">
+  <p class="rec-title">✨ Может понравиться</p>
+  <div id="recBody">
+    <p class="rec-event-title" id="recEventTitle"></p>
+    <div class="rec-meta" id="recMeta"></div>
+    <p class="rec-desc" id="recDesc"></p>
+    <div class="rec-actions">
+      <button class="rec-btn-yes" id="recBtnYes">Интересно!</button>
+      <button class="rec-btn-no"  id="recBtnNo">Нет</button>
+    </div>
+  </div>
+  <p class="rec-empty" id="recEmpty" style="display:none">Больше рекомендаций нет 🎉</p>
+</div>
+
 <footer class="footer">
   <a href="/about/">О нас</a>
 </footer>
@@ -91,15 +138,26 @@
   var CALENDAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
   var PIN_SVG     = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>';
 
-  var FORMAT_ICONS = { online: '💻', offline: '📍', hybrid: '🔀' };
+  var FORMAT_ICONS  = { online: '💻', offline: '📍', hybrid: '🔀' };
+  var FORMAT_LABELS = { online: 'Онлайн', offline: 'Оффлайн' };
+  var CAT_LABELS = {
+    it: 'IT', hackathon: 'Хакатон', startup: 'Стартап',
+    networking: 'Нетворкинг', lecture: 'Лекция', masterclass: 'Мастер-класс',
+    games: 'Игры', party: 'Вечеринка', sport: 'Спорт',
+    self_dev: 'Саморазвитие', dating: 'Знакомства',
+  };
+
+  var allEvents = [];
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
   function formatDate(iso) {
     if (!iso) return '';
     var d = new Date(iso);
     return d.toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
-
-  var FORMAT_LABELS = { online: 'Онлайн', offline: 'Оффлайн' };
 
   function makeCard(ev) {
     var icon = FORMAT_ICONS[ev.format] || '📅';
@@ -112,10 +170,17 @@
       var tagClass = ev.format === 'online' ? 'card-tag-online' : 'card-tag-offline';
       tags += '<span class="card-tag ' + tagClass + '">' + (FORMAT_LABELS[ev.format] || ev.format) + '</span>';
     }
+    (ev.categories || []).slice(0, 2).forEach(function (cat) {
+      tags += '<span class="card-tag card-tag-cat">' + escHtml(CAT_LABELS[cat] || cat) + '</span>';
+    });
     tags += '<span class="card-tag card-tag-open">Регистрация открыта</span>';
 
-    return '<article class="event-card">'
-      + '<div class="card-image-wrap"><div class="card-image">' + icon + '</div></div>'
+    var imgHtml = ev.image_url
+      ? '<div class="card-image-wrap"><img src="' + escHtml(ev.image_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px 14px 0 0"></div>'
+      : '<div class="card-image-wrap"><div class="card-image">' + icon + '</div></div>';
+
+    return '<article class="event-card" data-id="' + ev.id + '">'
+      + imgHtml
       + '<div class="card-body">'
       + '<h3 class="card-title">' + escHtml(ev.title) + '</h3>'
       + '<div class="card-meta">'
@@ -128,27 +193,169 @@
       + '</div></article>';
   }
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function getActiveFilters() {
+    var cats = Array.from(document.querySelectorAll('input[name="filterCat"]:checked')).map(function(cb){ return cb.value; });
+    var fmts = Array.from(document.querySelectorAll('.filter-fmt-chip input:checked')).map(function(cb){ return cb.value; });
+    var search = (document.querySelector('.search-input') || {}).value || '';
+    return { cats: cats, fmts: fmts, search: search.toLowerCase().trim() };
   }
 
-  function insertCards(events) {
+  function applyFilters() {
+    var f = getActiveFilters();
+    var filtered = allEvents.filter(function (ev) {
+      // Search by title
+      if (f.search && ev.title.toLowerCase().indexOf(f.search) === -1) return false;
+      // Format filter
+      if (f.fmts.length > 0 && f.fmts.indexOf(ev.format) === -1) return false;
+      // Category filter — event must have at least one selected category
+      if (f.cats.length > 0) {
+        var evCats = ev.categories || [];
+        var match = f.cats.some(function (c) { return evCats.indexOf(c) !== -1; });
+        if (!match) return false;
+      }
+      return true;
+    });
+
+    // Remove existing event cards (keep welcome + future)
     var track = document.getElementById('carouselTrack');
+    Array.from(track.querySelectorAll('.event-card[data-id]')).forEach(function (el) { el.remove(); });
+
+    // Insert filtered cards before future card
     var future = document.getElementById('futureCard');
-    var html = events.map(makeCard).join('');
+    var html = filtered.map(makeCard).join('');
     future.insertAdjacentHTML('beforebegin', html);
     window.dispatchEvent(new Event('resize'));
+
+    // Update count label
+    var countEl = document.getElementById('filterCount');
+    if (countEl) {
+      var total = allEvents.length;
+      var shown = filtered.length;
+      countEl.textContent = shown === total ? 'Показаны все события (' + total + ')' : 'Показано: ' + shown + ' из ' + total;
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Filter panel toggle
+    var filterBtn = document.querySelector('.filter-btn');
+    var filterPanel = document.getElementById('filterPanel');
+    filterBtn.addEventListener('click', function () {
+      filterPanel.style.display = filterPanel.style.display === 'none' ? 'block' : 'none';
+      filterBtn.classList.toggle('active', filterPanel.style.display !== 'none');
+    });
+
+    // Filter reset
+    document.getElementById('filterResetBtn').addEventListener('click', function () {
+      document.querySelectorAll('input[name="filterCat"]').forEach(function (cb) { cb.checked = false; });
+      document.querySelectorAll('.filter-fmt-chip input').forEach(function (cb) { cb.checked = false; });
+      document.querySelector('.search-input').value = '';
+      applyFilters();
+    });
+
+    // Live filter on any change
+    document.querySelectorAll('input[name="filterCat"], .filter-fmt-chip input').forEach(function (cb) {
+      cb.addEventListener('change', applyFilters);
+    });
+    document.querySelector('.search-input').addEventListener('input', applyFilters);
+
+    // Load events
     fetch('/api/events/upcoming')
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (data) {
         if (Array.isArray(data) && data.length > 0) {
-          insertCards(data);
+          allEvents = data;
+          applyFilters();
         }
       })
-      .catch(function () { /* не авторизован или нет сети — карусель остаётся с welcome/future */ });
+      .catch(function () { /* не авторизован или нет сети */ });
+  });
+}());
+</script>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'rec_excluded';
+  var currentRecId = null;
+
+  function getExcluded() {
+    try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+  }
+
+  function addExcluded(id) {
+    var ex = getExcluded();
+    if (ex.indexOf(id) === -1) ex.push(id);
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ex));
+  }
+
+  function formatDateShort(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  }
+
+  var CAT_LABELS = {
+    it: 'IT', hackathon: 'Хакатон', startup: 'Стартап',
+    networking: 'Нетворкинг', lecture: 'Лекция', masterclass: 'Мастер-класс',
+    games: 'Игры', party: 'Вечеринка', sport: 'Спорт',
+    self_dev: 'Саморазвитие', dating: 'Знакомства',
+  };
+
+  function loadRec() {
+    var ex = getExcluded();
+    var url = '/api/events/recommend' + (ex.length ? '?exclude=' + ex.join(',') : '');
+    fetch(url)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.event) { showEmpty(); return; }
+        showRec(data.event);
+      })
+      .catch(function () { /* silently hide */ });
+  }
+
+  function showRec(ev) {
+    currentRecId = ev.id;
+    document.getElementById('recEventTitle').textContent = ev.title;
+
+    var meta = [];
+    if (ev.event_start) meta.push('📅 ' + formatDateShort(ev.event_start));
+    if (ev.location)    meta.push('📍 ' + ev.location);
+    if (ev.organization_name) meta.push('🏢 ' + ev.organization_name);
+    document.getElementById('recMeta').innerHTML = meta.map(function(m){
+      return '<span>' + escHtml(m) + '</span>';
+    }).join('');
+
+    var cats = (ev.categories || []).map(function(c){ return CAT_LABELS[c] || c; });
+    var desc = ev.description ? ev.description.slice(0, 150) + (ev.description.length > 150 ? '…' : '') : '';
+    document.getElementById('recDesc').textContent = desc;
+
+    document.getElementById('recBody').style.display = '';
+    document.getElementById('recEmpty').style.display = 'none';
+    document.getElementById('recWidget').style.display = 'flex';
+  }
+
+  function showEmpty() {
+    document.getElementById('recBody').style.display = 'none';
+    document.getElementById('recEmpty').style.display = 'block';
+    document.getElementById('recWidget').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('recWidget').style.display = 'none'; }, 4000);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('recBtnYes').addEventListener('click', function () {
+      if (currentRecId) window.location.href = '/events/' + currentRecId + '/';
+    });
+
+    document.getElementById('recBtnNo').addEventListener('click', function () {
+      if (currentRecId) { addExcluded(currentRecId); currentRecId = null; }
+      loadRec();
+    });
+
+    // Load recommendation after a short delay (let main content load first)
+    setTimeout(loadRec, 400);
   });
 }());
 </script>

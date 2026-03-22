@@ -1,0 +1,706 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сфера — UniSphere</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    /* ── Sphere page layout ─────────────────────────────── */
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .sphere-page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px 48px;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ── Onboarding ─────────────────────────────────────── */
+    .ob-wrap {
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+      animation: fadeUp .4s ease both;
+    }
+    .ob-logo { font-size: 2.8rem; margin-bottom: 10px; }
+    .ob-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .ob-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+    .ob-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    .ob-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      border: 2px solid var(--border);
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all .18s;
+      color: var(--text);
+      background: var(--card-bg);
+    }
+    .ob-chip input { display: none; }
+    .ob-chip.selected {
+      border-color: var(--sphere-color, #e07b00);
+      background: var(--sphere-bg, rgba(224,123,0,.1));
+      color: var(--sphere-color, #e07b00);
+      transform: scale(1.04);
+    }
+    .ob-hint {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .ob-start-btn {
+      display: inline-block;
+      padding: 14px 40px;
+      border-radius: 100px;
+      background: var(--sphere-color, #e07b00);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .15s;
+    }
+    .ob-start-btn:hover { opacity: .9; transform: scale(1.03); }
+    .ob-start-btn:disabled { opacity: .45; cursor: default; transform: none; }
+    .ob-skip {
+      display: block;
+      margin-top: 14px;
+      font-size: .85rem;
+      color: var(--muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      text-decoration: underline;
+    }
+
+    /* ── Swipe screen ───────────────────────────────────── */
+    .swipe-wrap {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      animation: fadeUp .3s ease both;
+    }
+    .swipe-counter {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+    }
+
+    /* Card stack */
+    .card-stack {
+      position: relative;
+      width: 100%;
+      height: 520px;
+    }
+    .swipe-card {
+      position: absolute;
+      inset: 0;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.12);
+      display: flex;
+      flex-direction: column;
+      cursor: grab;
+      user-select: none;
+      transition: transform .12s, box-shadow .12s;
+      will-change: transform;
+    }
+    .swipe-card:active { cursor: grabbing; }
+
+    /* Hint overlays */
+    .swipe-card .hint-yes,
+    .swipe-card .hint-no {
+      position: absolute;
+      top: 28px;
+      padding: 8px 18px;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      opacity: 0;
+      transition: opacity .15s;
+      pointer-events: none;
+      z-index: 10;
+      border: 3px solid;
+    }
+    .swipe-card .hint-yes {
+      left: 24px;
+      color: #16a34a;
+      border-color: #16a34a;
+      transform: rotate(-15deg);
+    }
+    .swipe-card .hint-no {
+      right: 24px;
+      color: #dc2626;
+      border-color: #dc2626;
+      transform: rotate(15deg);
+    }
+
+    .card-img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .card-img-placeholder {
+      width: 100%;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      background: linear-gradient(135deg, var(--accent-l) 0%, var(--border) 100%);
+      flex-shrink: 0;
+    }
+    .card-content {
+      flex: 1;
+      padding: 20px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .card-org {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--sphere-color, #e07b00);
+    }
+    .card-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .card-info-row {
+      font-size: .82rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-info-row svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--muted);
+      flex-shrink: 0;
+    }
+    .card-tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .card-desc-short {
+      font-size: .85rem;
+      color: var(--text);
+      opacity: .75;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Action buttons */
+    .swipe-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .btn-nope {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2.5px solid #dc2626;
+      background: var(--card-bg);
+      color: #dc2626;
+      font-size: 1.6rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, transform .12s;
+      flex-shrink: 0;
+    }
+    .btn-nope:hover { background: rgba(220,38,38,.08); transform: scale(1.08); }
+
+    .btn-like {
+      flex: 1;
+      height: 56px;
+      border-radius: 100px;
+      border: none;
+      background: var(--sphere-color, #e07b00);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s, transform .12s;
+    }
+    .btn-like:hover { opacity: .88; transform: scale(1.03); }
+
+    .btn-detail {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border);
+      background: var(--card-bg);
+      color: var(--muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, transform .12s;
+      flex-shrink: 0;
+      text-decoration: none;
+    }
+    .btn-detail:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.08); }
+
+    /* Empty state */
+    .swipe-empty {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .swipe-empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .swipe-empty-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+    .swipe-empty-sub { font-size: .9rem; color: var(--muted); margin-bottom: 24px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes swipeLeft {
+      to { transform: translateX(-140%) rotate(-20deg); opacity: 0; }
+    }
+    @keyframes swipeRight {
+      to { transform: translateX(140%) rotate(20deg); opacity: 0; }
+    }
+    .anim-left  { animation: swipeLeft  .35s ease forwards; }
+    .anim-right { animation: swipeRight .35s ease forwards; }
+
+    /* sphere theme vars */
+    [data-theme="light"] {
+      --sphere-color: #e07b00;
+      --sphere-bg: rgba(224,123,0,.1);
+    }
+    [data-theme="dark"] {
+      --sphere-color: #a855f7;
+      --sphere-bg: rgba(168,85,247,.12);
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
+  </a>
+  <a href="/sfera/" class="sphere-btn" style="pointer-events:none">Сфера</a>
+  <div style="flex:1"></div>
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+  <a href="/profile/" class="account-btn" id="accountBtn" title="Профиль">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+      <polyline points="10 17 15 12 10 7"/>
+      <line x1="15" y1="12" x2="3" y2="12"/>
+    </svg>
+  </a>
+</header>
+
+<div class="sphere-page">
+
+  <!-- ── Onboarding ───────────────────────────────────── -->
+  <div class="ob-wrap" id="obScreen">
+    <div class="ob-logo">✨</div>
+    <h1 class="ob-title">Что тебе интересно?</h1>
+    <p class="ob-sub">Выбери темы — и Сфера покажет подходящие мероприятия</p>
+
+    <div class="ob-chips" id="obChips">
+      <label class="ob-chip" data-val="it"><input type="checkbox" value="it">💻 IT</label>
+      <label class="ob-chip" data-val="hackathon"><input type="checkbox" value="hackathon">⚡ Хакатоны</label>
+      <label class="ob-chip" data-val="startup"><input type="checkbox" value="startup">🚀 Стартапы</label>
+      <label class="ob-chip" data-val="networking"><input type="checkbox" value="networking">🤝 Нетворкинг</label>
+      <label class="ob-chip" data-val="lecture"><input type="checkbox" value="lecture">🎓 Лекции</label>
+      <label class="ob-chip" data-val="masterclass"><input type="checkbox" value="masterclass">🛠️ Мастер-классы</label>
+      <label class="ob-chip" data-val="games"><input type="checkbox" value="games">🎮 Игры</label>
+      <label class="ob-chip" data-val="party"><input type="checkbox" value="party">🎉 Вечеринки</label>
+      <label class="ob-chip" data-val="sport"><input type="checkbox" value="sport">⚽ Спорт</label>
+      <label class="ob-chip" data-val="self_dev"><input type="checkbox" value="self_dev">📈 Саморазвитие</label>
+      <label class="ob-chip" data-val="dating"><input type="checkbox" value="dating">💛 Знакомства</label>
+    </div>
+
+    <p class="ob-hint" id="obHint">Выбери хотя бы одну тему, или пропусти — покажем всё</p>
+    <button class="ob-start-btn" id="obStartBtn">Начать</button>
+    <button class="ob-skip" id="obSkipBtn">Пропустить — показать всё</button>
+  </div>
+
+  <!-- ── Swipe screen ──────────────────────────────────── -->
+  <div class="swipe-wrap" id="swipeScreen" style="display:none">
+    <div class="swipe-counter" id="swipeCounter"></div>
+
+    <div class="card-stack" id="cardStack">
+      <!-- Card is rendered dynamically -->
+    </div>
+
+    <div class="swipe-actions" id="swipeActions">
+      <button class="btn-nope" id="btnNope" title="Не интересно">✕</button>
+      <button class="btn-like" id="btnLike">❤️ Интересно!</button>
+      <a class="btn-detail" id="btnDetail" href="#" title="Подробнее">↗</a>
+    </div>
+
+    <button id="resetBtn" style="font-size:.8rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:4px">
+      Изменить интересы
+    </button>
+  </div>
+
+</div>
+
+<script src="{% static 'js/auth.js' %}"></script>
+<script>
+(function () {
+  /* ── Theme toggle ─────────────────────────────────────── */
+  var themeBtn = document.getElementById('themeToggle');
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  themeBtn.addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+  applyTheme(localStorage.getItem('theme') || 'light');
+
+  /* ── Auth ─────────────────────────────────────────────── */
+  var accountBtn = document.getElementById('accountBtn');
+  var cached = UniSphereAuth.getUser();
+  if (cached) {
+    accountBtn.textContent = UniSphereAuth.initials(cached);
+    accountBtn.href = '/profile/';
+  } else {
+    fetch('/api/users/me').then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if (d && d.id) {
+        UniSphereAuth.setUser(d);
+        accountBtn.textContent = UniSphereAuth.initials(d);
+        accountBtn.href = '/profile/';
+      }
+    });
+  }
+
+  /* ── Constants ────────────────────────────────────────── */
+  var CAT_LABELS = {
+    it:'IT', hackathon:'Хакатон', startup:'Стартап',
+    networking:'Нетворкинг', lecture:'Лекция', masterclass:'Мастер-класс',
+    games:'Игры', party:'Вечеринка', sport:'Спорт',
+    self_dev:'Саморазвитие', dating:'Знакомства',
+  };
+  var FORMAT_ICONS = { online: '💻', offline: '📍' };
+  var CALENDAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+  var PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var SESSION_KEY = 'sphere_excluded';
+  var INTERESTS_KEY = 'sphere_interests';
+
+  /* ── State ────────────────────────────────────────────── */
+  var interests = [];      // selected tags from onboarding
+  var excludedIds = [];    // swiped-left IDs this session
+  var currentEvent = null; // currently shown event
+  var seenCount = 0;
+
+  function getExcluded() {
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveExcluded() {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(excludedIds));
+  }
+  function getSavedInterests() {
+    try { return JSON.parse(sessionStorage.getItem(INTERESTS_KEY) || 'null'); } catch(e) { return null; }
+  }
+
+  /* ── Onboarding ───────────────────────────────────────── */
+  var obChips = document.querySelectorAll('.ob-chip');
+  obChips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      this.classList.toggle('selected');
+      updateObHint();
+    });
+  });
+
+  function updateObHint() {
+    var selected = document.querySelectorAll('.ob-chip.selected').length;
+    var hint = document.getElementById('obHint');
+    if (selected === 0) hint.textContent = 'Выбери хотя бы одну тему, или пропусти — покажем всё';
+    else hint.textContent = 'Выбрано тем: ' + selected + ' — Сфера подберёт лучшее для тебя!';
+  }
+
+  function startWithInterests(tags) {
+    interests = tags;
+    sessionStorage.setItem(INTERESTS_KEY, JSON.stringify(tags));
+    excludedIds = getExcluded();
+    document.getElementById('obScreen').style.display = 'none';
+    document.getElementById('swipeScreen').style.display = 'flex';
+    loadNext();
+  }
+
+  document.getElementById('obStartBtn').addEventListener('click', function () {
+    var tags = Array.from(document.querySelectorAll('.ob-chip.selected')).map(function(c){ return c.dataset.val; });
+    startWithInterests(tags);
+  });
+
+  document.getElementById('obSkipBtn').addEventListener('click', function () {
+    startWithInterests([]);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(INTERESTS_KEY);
+    excludedIds = [];
+    seenCount = 0;
+    document.getElementById('swipeScreen').style.display = 'none';
+    document.getElementById('obScreen').style.display = 'block';
+    // Uncheck all chips
+    document.querySelectorAll('.ob-chip').forEach(function(c){ c.classList.remove('selected'); });
+    updateObHint();
+  });
+
+  // If already went through onboarding this session, skip it
+  var savedInterests = getSavedInterests();
+  if (savedInterests !== null) {
+    startWithInterests(savedInterests);
+  }
+
+  /* ── Card rendering ───────────────────────────────────── */
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  function buildCard(ev) {
+    var imgHtml = ev.image_url
+      ? '<img class="card-img" src="' + escHtml(ev.image_url) + '" alt="">'
+      : '<div class="card-img-placeholder">' + (FORMAT_ICONS[ev.format] || '📅') + '</div>';
+
+    var tagsHtml = (ev.categories || []).map(function(c){
+      return '<span class="card-tag card-tag-cat">' + escHtml(CAT_LABELS[c] || c) + '</span>';
+    }).join('');
+    if (ev.format) {
+      var fc = ev.format === 'online' ? 'card-tag-online' : 'card-tag-offline';
+      tagsHtml = '<span class="card-tag ' + fc + '">' + escHtml(ev.format === 'online' ? 'Онлайн' : 'Оффлайн') + '</span>' + tagsHtml;
+    }
+
+    var desc = (ev.description || '').trim();
+
+    var div = document.createElement('div');
+    div.className = 'swipe-card';
+    div.innerHTML = ''
+      + '<div class="hint-yes">ИНТЕРЕСНО!</div>'
+      + '<div class="hint-no">ПРОПУСТИТЬ</div>'
+      + imgHtml
+      + '<div class="card-content">'
+      + '<div class="card-org">' + escHtml(ev.organization_name) + '</div>'
+      + '<div class="card-name">' + escHtml(ev.title) + '</div>'
+      + '<div class="card-info">'
+      + (ev.event_start ? '<div class="card-info-row">' + CALENDAR_SVG + escHtml(fmtDate(ev.event_start)) + '</div>' : '')
+      + (ev.location    ? '<div class="card-info-row">' + PIN_SVG + escHtml(ev.location) + '</div>' : '')
+      + '</div>'
+      + (tagsHtml ? '<div class="card-tags-row">' + tagsHtml + '</div>' : '')
+      + (desc ? '<div class="card-desc-short">' + escHtml(desc) + '</div>' : '')
+      + '</div>';
+
+    return div;
+  }
+
+  /* ── Drag / swipe logic ───────────────────────────────── */
+  var cardEl = null;
+  var startX = 0, currentX = 0;
+  var isDragging = false;
+  var SWIPE_THRESHOLD = 90;
+
+  function attachDrag(el) {
+    el.addEventListener('mousedown', onStart);
+    el.addEventListener('touchstart', onStart, { passive: true });
+  }
+
+  function onStart(e) {
+    isDragging = true;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    currentX = 0;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: true });
+    document.addEventListener('touchend', onEnd);
+  }
+
+  function onMove(e) {
+    if (!isDragging || !cardEl) return;
+    currentX = (e.touches ? e.touches[0].clientX : e.clientX) - startX;
+    var rot = currentX * 0.08;
+    cardEl.style.transform = 'translateX(' + currentX + 'px) rotate(' + rot + 'deg)';
+
+    var ratio = Math.min(Math.abs(currentX) / SWIPE_THRESHOLD, 1);
+    var hintYes = cardEl.querySelector('.hint-yes');
+    var hintNo  = cardEl.querySelector('.hint-no');
+    if (currentX > 0) { hintYes.style.opacity = ratio; hintNo.style.opacity = 0; }
+    else               { hintNo.style.opacity = ratio; hintYes.style.opacity = 0; }
+  }
+
+  function onEnd() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+
+    if (!cardEl) return;
+
+    if (currentX > SWIPE_THRESHOLD) {
+      swipeRight(); // like
+    } else if (currentX < -SWIPE_THRESHOLD) {
+      swipeLeft();  // nope
+    } else {
+      // snap back
+      cardEl.style.transition = 'transform .25s';
+      cardEl.style.transform = '';
+      cardEl.querySelector('.hint-yes').style.opacity = 0;
+      cardEl.querySelector('.hint-no').style.opacity  = 0;
+      setTimeout(function(){ if (cardEl) cardEl.style.transition = ''; }, 260);
+    }
+    currentX = 0;
+  }
+
+  function swipeLeft() {
+    if (!cardEl || !currentEvent) return;
+    excludedIds.push(currentEvent.id);
+    saveExcluded();
+    animateCard('left', loadNext);
+  }
+
+  function swipeRight() {
+    if (!cardEl || !currentEvent) return;
+    // Navigate to event page
+    window.location.href = '/events/' + currentEvent.id + '/';
+  }
+
+  function animateCard(dir, cb) {
+    if (!cardEl) return;
+    cardEl.style.transition = 'none';
+    cardEl.classList.add(dir === 'left' ? 'anim-left' : 'anim-right');
+    setTimeout(function () {
+      if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
+      cardEl = null;
+      currentEvent = null;
+      cb();
+    }, 380);
+  }
+
+  /* ── Buttons ──────────────────────────────────────────── */
+  document.getElementById('btnNope').addEventListener('click', function () {
+    swipeLeft();
+  });
+  document.getElementById('btnLike').addEventListener('click', function () {
+    swipeRight();
+  });
+
+  /* ── Load next event ──────────────────────────────────── */
+  function loadNext() {
+    var stack = document.getElementById('cardStack');
+    stack.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:.9rem">Ищем...</div>';
+
+    var params = new URLSearchParams();
+    if (excludedIds.length) params.set('exclude', excludedIds.join(','));
+    if (interests.length)   params.set('interests', interests.join(','));
+
+    fetch('/api/events/recommend?' + params.toString())
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data || !data.event) {
+          showEmpty();
+          return;
+        }
+        currentEvent = data.event;
+        seenCount++;
+        updateCounter();
+        showCard(data.event);
+      })
+      .catch(function() { showEmpty(); });
+  }
+
+  function showCard(ev) {
+    var stack = document.getElementById('cardStack');
+    stack.innerHTML = '';
+
+    cardEl = buildCard(ev);
+    attachDrag(cardEl);
+    stack.appendChild(cardEl);
+
+    document.getElementById('btnDetail').href = '/events/' + ev.id + '/';
+    document.getElementById('swipeActions').style.display = 'flex';
+  }
+
+  function updateCounter() {
+    var el = document.getElementById('swipeCounter');
+    el.textContent = seenCount > 1 ? 'Просмотрено: ' + seenCount : 'Сфера подобрала для тебя';
+  }
+
+  function showEmpty() {
+    var stack = document.getElementById('cardStack');
+    stack.innerHTML = ''
+      + '<div class="swipe-card" style="justify-content:center;align-items:center;cursor:default">'
+      + '<div class="swipe-empty">'
+      + '<div class="swipe-empty-icon">🎉</div>'
+      + '<div class="swipe-empty-title">Ты просмотрел все мероприятия!</div>'
+      + '<div class="swipe-empty-sub">Следи за обновлениями — новые события появятся скоро.</div>'
+      + '<button onclick="location.reload()" style="padding:12px 28px;border-radius:100px;background:var(--sphere-color,#e07b00);color:#fff;border:none;font-weight:700;cursor:pointer;font-size:.95rem">Начать заново</button>'
+      + '</div></div>';
+    document.getElementById('swipeActions').style.display = 'none';
+    document.getElementById('swipeCounter').textContent = '';
+  }
+}());
+</script>
+</body>
+</html>

@@ -22,14 +22,17 @@ from django.conf.urls.static import static
 
 from core.api import api
 from users.views import user_profile, auth_page, profile_page
-from events.views import home, event_detail, organizer_page, about_page
+from events.views import home, event_detail, organizer_page, about_page, org_dashboard_page, event_editor_page, sphere_page
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api.urls),
     path('', home, name='home'),
     path('events/<int:event_id>/', event_detail, name='event_detail'),
+    path('events/<int:event_id>/edit/', event_editor_page, name='event_editor'),
     path('organizer/<int:event_id>/', organizer_page, name='organizer_page'),
+    path('organizations/<int:org_id>/', org_dashboard_page, name='org_dashboard'),
+    path('sfera/', sphere_page, name='sphere'),
     path('about/', about_page, name='about_page'),
     path('auth/', auth_page, name='auth'),
     path('profile/', profile_page, name='profile'),
@@ -38,3 +41,4 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

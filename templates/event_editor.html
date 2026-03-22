@@ -1,0 +1,821 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактор мероприятия — UniSphere</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
+  </a>
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Поиск событий...">
+    <button class="filter-btn" title="Фильтры">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6"  x2="20" y2="6"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+        <line x1="10" y1="18" x2="14" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+  <a href="/profile/" class="account-btn" id="accountBtn">?</a>
+</header>
+
+<div id="pageLoading" class="profile-loading">Загрузка...</div>
+
+<div id="pageWrap" style="display:none; max-width:960px; margin:0 auto; padding:32px 20px; flex-direction:column; gap:24px">
+
+  <!-- Breadcrumb -->
+  <div style="font-size:.88rem; color:var(--muted)">
+    <span id="breadcrumbOrg"></span>
+  </div>
+
+  <!-- Status bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 style="font-size:1.4rem;font-weight:700" id="editorTitle">Редактор мероприятия</h1>
+      <div style="font-size:.85rem;color:var(--muted);margin-top:4px" id="publishedStatus"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-back" id="saveDraftBtn">💾 Сохранить черновик</button>
+      <button class="card-btn" id="publishBtn" style="display:none">🚀 Опубликовать</button>
+    </div>
+  </div>
+  <div id="saveNote" style="display:none;font-size:.88rem;padding:10px 16px;border-radius:10px;border:1.5px solid var(--border)"></div>
+
+  <!-- Basic info -->
+  <div class="profile-card">
+    <h2 class="profile-card-title">📝 Основная информация</h2>
+
+    <!-- Image upload -->
+    <div style="margin-bottom:20px">
+      <label class="profile-field-label" style="display:block;margin-bottom:8px">Обложка мероприятия</label>
+      <div id="imagePreviewWrap" style="display:none;margin-bottom:10px">
+        <img id="imagePreview" src="" alt="Обложка" style="max-width:100%;max-height:200px;border-radius:12px;border:1.5px solid var(--border);object-fit:cover">
+      </div>
+      <label class="image-upload-btn" for="imageInput">
+        📷 Загрузить изображение
+        <input type="file" id="imageInput" accept="image/*" style="display:none">
+      </label>
+      <p id="imageNote" style="display:none;font-size:.8rem;margin-top:6px"></p>
+    </div>
+
+    <div class="profile-settings-grid">
+      <div class="profile-field" style="grid-column:1/-1">
+        <label class="profile-field-label">Название мероприятия</label>
+        <input type="text" id="evTitle" class="profile-input" placeholder="Введите название">
+      </div>
+      <div class="profile-field" style="grid-column:1/-1">
+        <label class="profile-field-label">Описание</label>
+        <textarea id="evDesc" class="profile-input" rows="4" placeholder="Подробное описание мероприятия" style="resize:vertical"></textarea>
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Формат</label>
+        <select id="evFormat" class="profile-input">
+          <option value="offline">🏛️ Оффлайн</option>
+          <option value="online">💻 Онлайн</option>
+        </select>
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Место проведения</label>
+        <input type="text" id="evLocation" class="profile-input" placeholder="Адрес или ссылка на трансляцию">
+      </div>
+    </div>
+  </div>
+
+  <!-- Dates -->
+  <div class="profile-card">
+    <h2 class="profile-card-title">📅 Даты</h2>
+    <div class="profile-settings-grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="profile-field">
+        <label class="profile-field-label">Начало регистрации</label>
+        <input type="datetime-local" id="regStart" class="profile-input">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Конец регистрации</label>
+        <input type="datetime-local" id="regEnd" class="profile-input">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Начало мероприятия</label>
+        <input type="datetime-local" id="evStart" class="profile-input">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Конец мероприятия</label>
+        <input type="datetime-local" id="evEnd" class="profile-input">
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories & access type -->
+  <div class="profile-card">
+    <h2 class="profile-card-title">🏷️ Категории и доступ</h2>
+
+    <div class="profile-field" style="margin-bottom:20px">
+      <label class="profile-field-label" style="margin-bottom:10px;display:block">Категории мероприятия (можно несколько)</label>
+      <div class="category-chips" id="categoryChips">
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="it"> IT</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="hackathon"> Хакатоны</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="startup"> Стартапы</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="networking"> Нетворкинг</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="lecture"> Лекции</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="masterclass"> Мастер-классы</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="games"> Игры</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="party"> Вечеринки</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="sport"> Спорт</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="self_dev"> Саморазвитие</label>
+        <label class="cat-chip"><input type="checkbox" name="evCategory" value="dating"> Знакомства</label>
+      </div>
+    </div>
+
+    <div class="profile-field">
+      <label class="profile-field-label">Тип доступа</label>
+      <select id="evAccessType" class="profile-input">
+        <option value="open">🌐 Открытое — для всех</option>
+        <option value="university_only">🎓 Только для студентов вуза организатора</option>
+        <option value="closed">🔒 Закрытое</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Form type selector -->
+  <div class="profile-card">
+    <h2 class="profile-card-title">📋 Форма регистрации</h2>
+    <p style="font-size:.88rem;color:var(--muted);margin-bottom:16px">Выберите тип формы для регистрации участников</p>
+
+    <div class="form-type-grid">
+      <label class="form-type-card" id="ftSite">
+        <input type="radio" name="formType" value="site" checked style="display:none">
+        <div class="form-type-icon">🏗️</div>
+        <div class="form-type-label">Шаблон сайта</div>
+        <div class="form-type-desc">Конструктор форм прямо на платформе</div>
+      </label>
+      <label class="form-type-card" id="ftYandex">
+        <input type="radio" name="formType" value="yandex" style="display:none">
+        <div class="form-type-icon">📋</div>
+        <div class="form-type-label">Яндекс Формы</div>
+        <div class="form-type-desc">Вставьте ссылку на готовую форму</div>
+      </label>
+      <label class="form-type-card" id="ftGoogle">
+        <input type="radio" name="formType" value="google" style="display:none">
+        <div class="form-type-icon">📝</div>
+        <div class="form-type-label">Google Формы</div>
+        <div class="form-type-desc">Вставьте ссылку на Google Form</div>
+      </label>
+    </div>
+
+    <!-- External URL input (Yandex / Google) -->
+    <div id="externalFormWrap" style="display:none;margin-top:20px">
+      <div class="profile-field">
+        <label class="profile-field-label" id="externalFormLabel">Ссылка на форму</label>
+        <input type="url" id="formUrl" class="profile-input" placeholder="https://...">
+        <p style="font-size:.78rem;color:var(--muted);margin-top:4px" id="externalFormHint"></p>
+      </div>
+    </div>
+
+    <!-- Site form builder -->
+    <div id="siteFormBuilder" style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <span style="font-weight:600;font-size:.9rem">Поля формы</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="card-btn" id="addStandardFieldsBtn" style="font-size:.82rem;padding:7px 14px;white-space:nowrap">⚡ Стандартные поля</button>
+          <button class="btn-back" id="addFieldBtn" style="font-size:.82rem;padding:7px 14px">+ Добавить поле</button>
+        </div>
+      </div>
+      <div id="standardFieldsHint" style="display:none;font-size:.78rem;color:#16a34a;background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:8px 12px;margin-bottom:12px"></div>
+      <div id="formFieldsList"></div>
+      <p id="formEmptyNote" style="color:var(--muted);font-size:.85rem">Форма пуста. Добавьте поля или нажмите «Стандартные поля».</p>
+    </div>
+  </div>
+
+  <!-- Participants list (members only) -->
+  <div class="profile-card" id="participantsCard" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <h2 class="profile-card-title" style="margin-bottom:0">👥 Участники мероприятия</h2>
+      <span id="participantsCount" style="font-size:.85rem;color:var(--muted)"></span>
+    </div>
+    <div id="participantsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+  </div>
+
+  <!-- Bottom save -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <button class="btn-back" id="saveDraftBtn2">💾 Сохранить черновик</button>
+    <button class="card-btn" id="publishBtn2" style="display:none">🚀 Опубликовать</button>
+  </div>
+
+</div><!-- #pageWrap -->
+
+<script src="{% static 'js/carousel.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
+<script>
+var EVENT_ID = {{ event_id }};
+var eventData = null;
+var formFields = []; // array of field objects for site form
+var currentUser = null; // cached user profile
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── Auth ─────────────────────────────────────────────── */
+  function init(user) {
+    currentUser = user;
+    document.getElementById('accountBtn').textContent = UniSphereAuth.initials(user);
+    loadEvent();
+    // Refresh full profile in background
+    fetch('/api/users/me')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ if (d && d.id) { currentUser = d; UniSphereAuth.setUser(d); } });
+  }
+
+  var cached = UniSphereAuth.getUser();
+  if (cached) init(cached);
+  else {
+    fetch('/api/users/me')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (d && d.id) { UniSphereAuth.setUser(d); init(d); }
+        else window.location.href = '/auth/';
+      })
+      .catch(function () { window.location.href = '/auth/'; });
+  }
+
+  /* ── Load event ───────────────────────────────────────── */
+  function loadEvent() {
+    fetch('/api/events/' + EVENT_ID)
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        if (data.error) {
+          document.getElementById('pageLoading').textContent = data.error;
+          return;
+        }
+        eventData = data;
+        renderEvent(data);
+      })
+      .catch(function () {
+        document.getElementById('pageLoading').textContent = 'Не удалось загрузить данные мероприятия.';
+      });
+  }
+
+  function toLocalInput(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr);
+    var pad = function(n) { return String(n).padStart(2,'0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+      + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderEvent(data) {
+    document.getElementById('pageLoading').style.display = 'none';
+    document.getElementById('pageWrap').style.display = 'flex';
+
+    var title = data.title || '(без названия)';
+    document.title = title + ' — UniSphere';
+    document.getElementById('editorTitle').textContent = title || 'Новое мероприятие';
+
+    var bc = document.getElementById('breadcrumbOrg');
+    bc.innerHTML = '<a href="/organizations/' + data.organization_id + '/" style="color:var(--accent);text-decoration:none">← ' + escHtml(data.organization_name) + '</a>';
+
+    var published = data.is_published;
+    document.getElementById('publishedStatus').innerHTML = published
+      ? '<span style="color:#16a34a;font-weight:600">● Опубликовано</span>'
+      : '<span style="color:var(--muted)">○ Черновик</span>';
+
+    document.getElementById('publishBtn').style.display  = published ? 'none' : 'inline-block';
+    document.getElementById('publishBtn2').style.display = published ? 'none' : 'inline-block';
+
+    if (published) {
+      // Disable editing for published events
+      disableEditing();
+    }
+
+    // Fill basic fields
+    document.getElementById('evTitle').value    = data.title || '';
+    document.getElementById('evDesc').value     = data.description || '';
+    document.getElementById('evFormat').value   = data.format || 'offline';
+    document.getElementById('evLocation').value = data.location || '';
+
+    document.getElementById('regStart').value = toLocalInput(data.registration_start);
+    document.getElementById('regEnd').value   = toLocalInput(data.registration_end);
+    document.getElementById('evStart').value  = toLocalInput(data.event_start);
+    document.getElementById('evEnd').value    = toLocalInput(data.event_end);
+
+    // Image
+    if (data.image_url) {
+      document.getElementById('imagePreview').src = data.image_url;
+      document.getElementById('imagePreviewWrap').style.display = 'block';
+    }
+
+    // Show participants section for org members
+    document.getElementById('participantsCard').style.display = 'block';
+    loadParticipants();
+
+    // Categories
+    var cats = Array.isArray(data.categories) ? data.categories : [];
+    document.querySelectorAll('input[name="evCategory"]').forEach(function (cb) {
+      cb.checked = cats.indexOf(cb.value) !== -1;
+    });
+
+    // Access type
+    document.getElementById('evAccessType').value = data.access_type || 'open';
+
+    // Form type
+    var ft = data.form_type || 'site';
+    var radio = document.querySelector('input[name="formType"][value="' + ft + '"]');
+    if (radio) radio.checked = true;
+    updateFormTypeUI(ft);
+
+    if (data.form_url) {
+      document.getElementById('formUrl').value = data.form_url;
+    }
+
+    // Form fields for site
+    formFields = Array.isArray(data.form) ? data.form.slice() : [];
+    renderFormFields();
+  }
+
+  function disableEditing() {
+    ['evTitle','evDesc','evFormat','evLocation','regStart','regEnd','evStart','evEnd','formUrl']
+      .forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+    document.getElementById('addFieldBtn').disabled = true;
+    document.getElementById('saveDraftBtn').disabled = true;
+    document.getElementById('saveDraftBtn2').disabled = true;
+    document.querySelectorAll('input[name="formType"]').forEach(function(r) { r.disabled = true; });
+    document.getElementById('imageInput').disabled = true;
+    document.getElementById('evAccessType').disabled = true;
+    document.querySelectorAll('input[name="evCategory"]').forEach(function(cb) { cb.disabled = true; });
+  }
+
+  /* ── Form type toggle ─────────────────────────────────── */
+  document.querySelectorAll('input[name="formType"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      updateFormTypeUI(this.value);
+    });
+  });
+
+  // Make whole card clickable
+  document.querySelectorAll('.form-type-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var radio = this.querySelector('input[type="radio"]');
+      if (radio && !radio.disabled) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  function updateFormTypeUI(ft) {
+    // Update card styles
+    document.querySelectorAll('.form-type-card').forEach(function (card) {
+      var val = card.querySelector('input[type="radio"]').value;
+      card.classList.toggle('selected', val === ft);
+    });
+
+    var externalWrap = document.getElementById('externalFormWrap');
+    var siteBuilder  = document.getElementById('siteFormBuilder');
+    var hint = document.getElementById('externalFormHint');
+    var label = document.getElementById('externalFormLabel');
+
+    if (ft === 'site') {
+      externalWrap.style.display = 'none';
+      siteBuilder.style.display  = 'block';
+    } else if (ft === 'yandex') {
+      externalWrap.style.display = 'block';
+      siteBuilder.style.display  = 'none';
+      label.textContent = 'Ссылка на Яндекс Форму';
+      hint.textContent  = 'Участники будут перенаправлены на вашу форму в Яндекс Формах';
+    } else if (ft === 'google') {
+      externalWrap.style.display = 'block';
+      siteBuilder.style.display  = 'none';
+      label.textContent = 'Ссылка на Google Форму';
+      hint.textContent  = 'Участники будут перенаправлены на вашу форму в Google Формах';
+    }
+  }
+
+  /* ── Form builder ─────────────────────────────────────── */
+  var FIELD_TYPES = [
+    { value: 'text',     label: 'Строка текста' },
+    { value: 'textarea', label: 'Многострочный текст' },
+    { value: 'number',   label: 'Число' },
+    { value: 'select',   label: 'Выбор из списка' },
+    { value: 'checkbox', label: 'Флажок' },
+  ];
+
+  document.getElementById('addFieldBtn').addEventListener('click', function () {
+    formFields.push({
+      name: 'field_' + (formFields.length + 1),
+      label: 'Новое поле',
+      type: 'text',
+      required: false,
+      options: [],
+    });
+    renderFormFields();
+  });
+
+  /* ── Standard fields (auto from user profile) ─────────── */
+  document.getElementById('addStandardFieldsBtn').addEventListener('click', function () {
+    var u = currentUser || UniSphereAuth.getUser() || {};
+    var added = [];
+
+    // Always include: ФИО, email, phone
+    var hasFullName = formFields.some(function(f){ return f.name === 'full_name'; });
+    if (!hasFullName) {
+      var defaultFio = [u.last_name, u.first_name, u.patronymic].filter(Boolean).join(' ');
+      formFields.unshift({
+        name: 'full_name',
+        label: 'ФИО',
+        type: 'text',
+        required: true,
+        options: [],
+        _default: defaultFio,
+      });
+      added.push('ФИО');
+    }
+
+    var hasEmail = formFields.some(function(f){ return f.name === 'email'; });
+    if (!hasEmail) {
+      formFields.splice(1, 0, {
+        name: 'email',
+        label: 'Email',
+        type: 'text',
+        required: true,
+        options: [],
+        _default: u.email || '',
+      });
+      added.push('Email');
+    }
+
+    var hasPhone = formFields.some(function(f){ return f.name === 'phone'; });
+    if (!hasPhone) {
+      formFields.splice(2, 0, {
+        name: 'phone',
+        label: 'Номер телефона',
+        type: 'text',
+        required: true,
+        options: [],
+      });
+      added.push('Телефон');
+    }
+
+    // University — add if user has one
+    var hasUni = formFields.some(function(f){ return f.name === 'university'; });
+    if (!hasUni) {
+      formFields.push({
+        name: 'university',
+        label: 'Университет',
+        type: 'text',
+        required: false,
+        options: [],
+        _default: u.university_name || '',
+      });
+      added.push('Университет');
+    }
+
+    // Course — add if user has course set
+    var hasCourse = formFields.some(function(f){ return f.name === 'course'; });
+    if (!hasCourse) {
+      formFields.push({
+        name: 'course',
+        label: 'Курс',
+        type: 'number',
+        required: false,
+        options: [],
+        _default: u.course ? String(u.course) : '',
+      });
+      added.push('Курс');
+    }
+
+    renderFormFields();
+
+    var hint = document.getElementById('standardFieldsHint');
+    if (added.length > 0) {
+      hint.textContent = '✓ Добавлены поля: ' + added.join(', ')
+        + '. При заполнении участниками данные будут подставлены автоматически из профиля.';
+      hint.style.display = 'block';
+      setTimeout(function(){ hint.style.display = 'none'; }, 5000);
+    }
+  });
+
+  function renderFormFields() {
+    var list = document.getElementById('formFieldsList');
+    var emptyNote = document.getElementById('formEmptyNote');
+
+    if (formFields.length === 0) {
+      list.innerHTML = '';
+      emptyNote.style.display = 'block';
+      return;
+    }
+    emptyNote.style.display = 'none';
+
+    list.innerHTML = formFields.map(function (field, idx) {
+      var typeOptions = FIELD_TYPES.map(function (t) {
+        return '<option value="' + t.value + '"' + (field.type === t.value ? ' selected' : '') + '>' + t.label + '</option>';
+      }).join('');
+
+      var optionsSection = field.type === 'select'
+        ? '<div style="margin-top:8px">'
+          + '<label class="profile-field-label" style="margin-bottom:4px;display:block">Варианты (по одному на строку)</label>'
+          + '<textarea class="profile-input field-options" data-idx="' + idx + '" rows="3" style="resize:vertical">'
+          + (field.options || []).join('\n')
+          + '</textarea></div>'
+        : '';
+
+      return '<div class="form-field-row" data-idx="' + idx + '">'
+        + '<div class="form-field-header">'
+        + '<span class="form-field-drag">☰</span>'
+        + '<span style="font-size:.82rem;color:var(--muted)">Поле ' + (idx+1) + '</span>'
+        + '<div style="display:flex;gap:8px;margin-left:auto">'
+        + (idx > 0 ? '<button class="field-btn" onclick="moveField(' + idx + ',-1)" title="Вверх">↑</button>' : '')
+        + (idx < formFields.length-1 ? '<button class="field-btn" onclick="moveField(' + idx + ',1)" title="Вниз">↓</button>' : '')
+        + '<button class="field-btn field-btn-del" onclick="removeField(' + idx + ')" title="Удалить">✕</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="profile-settings-grid" style="grid-template-columns:1fr 1fr;gap:10px">'
+        + '<div class="profile-field">'
+        + '<label class="profile-field-label">Название поля (name)</label>'
+        + '<input type="text" class="profile-input field-name" data-idx="' + idx + '" value="' + escAttr(field.name) + '" placeholder="field_name">'
+        + '</div>'
+        + '<div class="profile-field">'
+        + '<label class="profile-field-label">Подпись (label)</label>'
+        + '<input type="text" class="profile-input field-label" data-idx="' + idx + '" value="' + escAttr(field.label) + '" placeholder="Текст подписи">'
+        + '</div>'
+        + '<div class="profile-field">'
+        + '<label class="profile-field-label">Тип поля</label>'
+        + '<select class="profile-input field-type" data-idx="' + idx + '">' + typeOptions + '</select>'
+        + '</div>'
+        + '<div class="profile-field" style="display:flex;align-items:center;gap:10px;padding-top:22px">'
+        + '<input type="checkbox" id="req_' + idx + '" class="field-required" data-idx="' + idx + '"' + (field.required ? ' checked' : '') + ' style="width:18px;height:18px;cursor:pointer">'
+        + '<label for="req_' + idx + '" class="profile-field-label" style="cursor:pointer;margin:0">Обязательное</label>'
+        + '</div>'
+        + '</div>'
+        + optionsSection
+        + '</div>';
+    }).join('');
+
+    // Attach live listeners
+    list.querySelectorAll('.field-name').forEach(function (el) {
+      el.addEventListener('input', function () {
+        formFields[+this.dataset.idx].name = this.value;
+      });
+    });
+    list.querySelectorAll('.field-label').forEach(function (el) {
+      el.addEventListener('input', function () {
+        formFields[+this.dataset.idx].label = this.value;
+      });
+    });
+    list.querySelectorAll('.field-type').forEach(function (el) {
+      el.addEventListener('change', function () {
+        formFields[+this.dataset.idx].type = this.value;
+        renderFormFields();
+      });
+    });
+    list.querySelectorAll('.field-required').forEach(function (el) {
+      el.addEventListener('change', function () {
+        formFields[+this.dataset.idx].required = this.checked;
+      });
+    });
+    list.querySelectorAll('.field-options').forEach(function (el) {
+      el.addEventListener('input', function () {
+        formFields[+this.dataset.idx].options = this.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+      });
+    });
+  }
+
+  window.moveField = function (idx, dir) {
+    var target = idx + dir;
+    if (target < 0 || target >= formFields.length) return;
+    var tmp = formFields[idx];
+    formFields[idx] = formFields[target];
+    formFields[target] = tmp;
+    renderFormFields();
+  };
+
+  window.removeField = function (idx) {
+    formFields.splice(idx, 1);
+    renderFormFields();
+  };
+
+  /* ── Image upload ─────────────────────────────────────── */
+  document.getElementById('imageInput').addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    var note = document.getElementById('imageNote');
+    note.textContent = 'Загрузка...';
+    note.style.color = 'var(--muted)';
+    note.style.display = 'block';
+
+    var formData = new FormData();
+    formData.append('image', file);
+
+    fetch('/api/events/' + EVENT_ID + '/upload-image', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': UniSphereAuth.csrfToken() },
+      body: formData,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) {
+          note.textContent = d.error;
+          note.style.color = '#b91c1c';
+        } else {
+          document.getElementById('imagePreview').src = d.image_url;
+          document.getElementById('imagePreviewWrap').style.display = 'block';
+          note.textContent = '✓ Изображение загружено';
+          note.style.color = '#16a34a';
+          setTimeout(function () { note.style.display = 'none'; }, 3000);
+        }
+      })
+      .catch(function () {
+        note.textContent = 'Ошибка при загрузке';
+        note.style.color = '#b91c1c';
+      });
+  });
+
+  /* ── Collect form data ────────────────────────────────── */
+  function collectData() {
+    var ft = (document.querySelector('input[name="formType"]:checked') || {}).value || 'site';
+    function toISO(val) {
+      if (!val) return '';
+      return val.replace('T', 'T').replace(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$/, '$1:00');
+    }
+    return {
+      title:              document.getElementById('evTitle').value.trim(),
+      description:        document.getElementById('evDesc').value.trim(),
+      format:             document.getElementById('evFormat').value,
+      location:           document.getElementById('evLocation').value.trim(),
+      registration_start: toISO(document.getElementById('regStart').value),
+      registration_end:   toISO(document.getElementById('regEnd').value),
+      event_start:        toISO(document.getElementById('evStart').value),
+      event_end:          toISO(document.getElementById('evEnd').value),
+      form_type:          ft,
+      form_url:           ft !== 'site' ? document.getElementById('formUrl').value.trim() : '',
+      form:               ft === 'site' ? formFields : [],
+      categories:         Array.from(document.querySelectorAll('input[name="evCategory"]:checked')).map(function(cb){return cb.value;}),
+      access_type:        document.getElementById('evAccessType').value,
+    };
+  }
+
+  /* ── Save draft ───────────────────────────────────────── */
+  function saveDraft(onSuccess) {
+    var data = collectData();
+    var note = document.getElementById('saveNote');
+    note.style.display = 'none';
+
+    UniSphereAuth.post('/api/events/' + EVENT_ID + '/update', data)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) {
+          showSaveNote(d.error, true);
+        } else {
+          showSaveNote('✓ Черновик сохранён', false);
+          document.getElementById('editorTitle').textContent = data.title || 'Новое мероприятие';
+          document.title = (data.title || 'Мероприятие') + ' — UniSphere';
+          if (onSuccess) onSuccess();
+        }
+      })
+      .catch(function () {
+        showSaveNote('Ошибка при сохранении', true);
+      });
+  }
+
+  document.getElementById('saveDraftBtn').addEventListener('click', function () { saveDraft(); });
+  document.getElementById('saveDraftBtn2').addEventListener('click', function () { saveDraft(); });
+
+  /* ── Publish ──────────────────────────────────────────── */
+  function publishEvent() {
+    saveDraft(function () {
+      UniSphereAuth.post('/api/events/' + EVENT_ID + '/publish', {})
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.error) {
+            showSaveNote(d.error, true);
+          } else {
+            showSaveNote('✓ Мероприятие опубликовано!', false);
+            document.getElementById('publishedStatus').innerHTML = '<span style="color:#16a34a;font-weight:600">● Опубликовано</span>';
+            document.getElementById('publishBtn').style.display  = 'none';
+            document.getElementById('publishBtn2').style.display = 'none';
+            disableEditing();
+          }
+        })
+        .catch(function () {
+          showSaveNote('Ошибка при публикации', true);
+        });
+    });
+  }
+
+  document.getElementById('publishBtn').addEventListener('click', publishEvent);
+  document.getElementById('publishBtn2').addEventListener('click', publishEvent);
+
+  /* ── Participants list ────────────────────────────────── */
+  function loadParticipants() {
+    var list  = document.getElementById('participantsList');
+    var count = document.getElementById('participantsCount');
+    list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Загрузка...</p>';
+
+    fetch('/api/events/' + EVENT_ID + '/registrations')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        if (data.error) {
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">' + escHtml(data.error) + '</p>';
+          return;
+        }
+        if (!Array.isArray(data) || data.length === 0) {
+          count.textContent = '0 человек';
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Ещё никто не зарегистрировался.</p>';
+          return;
+        }
+        count.textContent = data.length + ' ' + pluralRu(data.length, 'человек', 'человека', 'человек');
+
+        var STATUS_LABELS = {
+          pending:  '<span class="status-pending">На рассмотрении</span>',
+          approved: '<span class="status-registered">Одобрен</span>',
+          rejected: '<span class="status-rejected">Отклонён</span>',
+        };
+
+        list.innerHTML = '<div class="members-table">'
+          + '<div class="members-header" style="grid-template-columns:2fr 1fr 1fr 1fr"><span>Участник</span><span>Зарегистрирован</span><span>Статус</span><span>Действия</span></div>'
+          + data.map(function (reg) {
+            var fullName = [reg.user_last_name, reg.user_first_name].filter(Boolean).join(' ') || reg.user_email;
+            var regDate  = reg.registered_at ? new Date(reg.registered_at).toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' }) : '';
+            var statusHtml = STATUS_LABELS[reg.status] || '<span>' + escHtml(reg.status) + '</span>';
+
+            var actions = '';
+            if (reg.status !== 'approved') {
+              actions += '<button class="field-btn" style="color:#16a34a;border-color:#16a34a" onclick="reviewReg(' + reg.id + ',\'approved\')">✓</button> ';
+            }
+            if (reg.status !== 'rejected') {
+              actions += '<button class="field-btn field-btn-del" onclick="reviewReg(' + reg.id + ',\'rejected\')">✕</button>';
+            }
+
+            var answersHtml = '';
+            if (reg.form_answer && Object.keys(reg.form_answer).length > 0) {
+              answersHtml = '<div class="participant-answers" style="margin:0 16px 10px">'
+                + Object.entries(reg.form_answer).map(function(kv){
+                  return '<span class="participant-answer-key">' + escHtml(kv[0]) + ':</span> ' + escHtml(String(kv[1]));
+                }).join('&nbsp;&nbsp;·&nbsp;&nbsp;')
+                + '</div>';
+            }
+
+            return '<div style="border-bottom:1px solid var(--border)">'
+              + '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;align-items:center;padding:12px 16px">'
+              + '<div><div style="font-weight:600;font-size:.88rem">' + escHtml(fullName) + '</div>'
+              + '<div style="font-size:.75rem;color:var(--muted)">' + escHtml(reg.user_email) + '</div></div>'
+              + '<div style="font-size:.82rem;color:var(--muted)">' + regDate + '</div>'
+              + '<div>' + statusHtml + '</div>'
+              + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + actions + '</div>'
+              + '</div>'
+              + answersHtml
+              + '</div>';
+          }).join('')
+          + '</div>';
+      })
+      .catch(function () {
+        list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить список участников.</p>';
+      });
+  }
+
+  window.reviewReg = function (regId, status) {
+    UniSphereAuth.post('/api/events/registrations/' + regId + '/review', { status: status })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { alert(d.error); }
+        else { loadParticipants(); }
+      });
+  };
+
+  function pluralRu(n, one, few, many) {
+    var mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return n + ' ' + one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return n + ' ' + few;
+    return n + ' ' + many;
+  }
+
+  function showSaveNote(msg, isError) {
+    var note = document.getElementById('saveNote');
+    note.textContent = msg;
+    note.style.color       = isError ? '#b91c1c' : '#16a34a';
+    note.style.background  = isError ? 'rgba(185,28,28,.07)' : 'rgba(22,163,74,.07)';
+    note.style.borderColor = isError ? 'rgba(185,28,28,.25)' : 'rgba(22,163,74,.25)';
+    note.style.display = 'block';
+    if (!isError) setTimeout(function () { note.style.display = 'none'; }, 4000);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escAttr(s) { return escHtml(s); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Организация — UniSphere</title>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">
+    <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
+  </a>
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Поиск событий...">
+    <button class="filter-btn" title="Фильтры">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6"  x2="20" y2="6"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+        <line x1="10" y1="18" x2="14" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
+  <a href="/profile/" class="account-btn" id="accountBtn">?</a>
+</header>
+
+<div id="pageLoading" class="profile-loading">Загрузка...</div>
+
+<div id="pageWrap" style="display:none; max-width:960px; margin:0 auto; padding:32px 20px; flex-direction:column; gap:24px">
+
+  <!-- Breadcrumb -->
+  <div style="font-size:.88rem; color:var(--muted)">
+    <a href="/profile/" style="color:var(--accent);text-decoration:none">← Мои организации</a>
+  </div>
+
+  <!-- Org hero -->
+  <div class="profile-hero" style="margin-bottom:0">
+    <div class="profile-hero-banner" style="background:linear-gradient(135deg,var(--accent),#0d6b8a)"></div>
+    <div class="profile-hero-body">
+      <div class="profile-avatar" style="font-size:2rem">🏢</div>
+      <div class="profile-info">
+        <h1 class="profile-name" id="orgName">Загрузка...</h1>
+        <p class="profile-email-text" id="orgRole"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit org info (admin only) -->
+  <div class="profile-card" id="editOrgCard" style="display:none">
+    <h2 class="profile-card-title">✏️ Информация об организации</h2>
+    <div class="profile-settings-grid">
+      <div class="profile-field">
+        <label class="profile-field-label">Название</label>
+        <input type="text" id="orgNameInput" class="profile-input" placeholder="Название организации">
+      </div>
+      <div class="profile-field" style="grid-column:1/-1">
+        <label class="profile-field-label">Описание</label>
+        <textarea id="orgDescInput" class="profile-input" rows="3" placeholder="Описание организации" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="profile-settings-footer">
+      <button class="card-btn" id="saveOrgBtn">Сохранить</button>
+      <p id="saveOrgNote" style="display:none;font-size:.85rem"></p>
+    </div>
+  </div>
+
+  <!-- Events section -->
+  <div class="profile-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <h2 class="profile-card-title" style="margin-bottom:0">📋 Мероприятия</h2>
+      <button class="card-btn" id="createEventBtn" style="display:none">+ Создать мероприятие</button>
+    </div>
+    <div id="eventsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+  </div>
+
+  <!-- Members section (visible for members, editable for admins) -->
+  <div class="profile-card" id="membersCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <h2 class="profile-card-title" style="margin-bottom:0">👥 Участники организации</h2>
+    </div>
+
+    <!-- Add member form (admin only) -->
+    <div id="addMemberForm" style="display:none;margin-bottom:16px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="profile-field" style="flex:1;min-width:200px">
+          <label class="profile-field-label">Email пользователя</label>
+          <input type="email" id="addMemberEmail" class="profile-input" placeholder="user@example.com">
+        </div>
+        <button class="card-btn" id="addMemberBtn" style="height:42px">Добавить</button>
+      </div>
+      <p id="addMemberNote" style="display:none;font-size:.82rem;margin-top:8px"></p>
+    </div>
+
+    <div id="membersList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+  </div>
+
+</div>
+
+<script src="{% static 'js/carousel.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
+<script>
+var ORG_ID = {{ org_id }};
+var orgData = null;
+var currentUserId = null;
+var isAdmin = false;
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── Auth ─────────────────────────────────────────────── */
+  function init(user) {
+    currentUserId = user.id;
+    document.getElementById('accountBtn').textContent = UniSphereAuth.initials(user);
+    loadOrg();
+  }
+
+  var cached = UniSphereAuth.getUser();
+  if (cached) init(cached);
+  else {
+    fetch('/api/users/me')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (d && d.id) { UniSphereAuth.setUser(d); init(d); }
+        else window.location.href = '/auth/';
+      })
+      .catch(function () { window.location.href = '/auth/'; });
+  }
+
+  /* ── Load organization ────────────────────────────────── */
+  function loadOrg() {
+    fetch('/api/organizations/' + ORG_ID)
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        orgData = data;
+        renderOrg(data);
+        loadMembers();
+      })
+      .catch(function () {
+        document.getElementById('pageLoading').textContent = 'Не удалось загрузить данные организации.';
+      });
+  }
+
+  function renderOrg(data) {
+    document.getElementById('pageLoading').style.display = 'none';
+    document.getElementById('pageWrap').style.display = 'flex';
+
+    document.getElementById('orgName').textContent = data.name;
+    document.title = data.name + ' — UniSphere';
+
+    isAdmin = data.status === 'admin';
+    var isMember = data.status === 'admin' || data.status === 'member';
+
+    document.getElementById('orgRole').textContent =
+      isAdmin ? '⭐ Вы администратор' : isMember ? '👤 Вы участник' : 'Публичная страница';
+
+    if (isAdmin) {
+      document.getElementById('editOrgCard').style.display = 'block';
+      document.getElementById('orgNameInput').value = data.name;
+      document.getElementById('orgDescInput').value = data.description || '';
+      document.getElementById('createEventBtn').style.display = 'inline-block';
+      document.getElementById('addMemberForm').style.display = 'block';
+    } else if (isMember) {
+      document.getElementById('createEventBtn').style.display = 'inline-block';
+    }
+
+    renderEvents(data.events, isMember, isAdmin);
+  }
+
+  /* ── Events ───────────────────────────────────────────── */
+  function renderEvents(events, isMember, isAdmin) {
+    var list = document.getElementById('eventsList');
+    if (!events || events.length === 0) {
+      list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Нет мероприятий. Создайте первое!</p>';
+      return;
+    }
+
+    var STATUS_MAP = {
+      upcoming:             { label: 'Скоро',                cls: 'status-pending' },
+      registration_open:    { label: 'Регистрация открыта', cls: 'status-registered' },
+      registration_closed:  { label: 'Регистрация закрыта', cls: 'status-pending' },
+      ongoing:              { label: 'Идёт сейчас',         cls: 'status-registered' },
+      past:                 { label: 'Завершено',           cls: '' },
+    };
+
+    list.innerHTML = events.map(function (ev) {
+      var s = STATUS_MAP[ev.status] || { label: ev.status, cls: '' };
+      var publishedBadge = ev.is_published
+        ? '<span style="font-size:.75rem;color:#16a34a;font-weight:600">● Опубликовано</span>'
+        : '<span style="font-size:.75rem;color:var(--muted);font-weight:600">○ Черновик</span>';
+      var dateStr = ev.event_start
+        ? new Date(ev.event_start).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' })
+        : '';
+      var actionLink = isMember
+        ? '<a href="/events/' + ev.id + '/edit/" class="card-btn" style="font-size:.8rem;padding:6px 14px;text-decoration:none;display:inline-block;white-space:nowrap">Редактировать</a>'
+        : '<a href="/events/' + ev.id + '/" class="btn-back" style="font-size:.8rem;padding:6px 14px;text-decoration:none;display:inline-block">Открыть</a>';
+
+      return '<div class="org-event-row">'
+        + '<div class="org-event-info">'
+        + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        + '<span style="font-weight:600;font-size:.95rem">' + escHtml(ev.name || '(без названия)') + '</span>'
+        + publishedBadge
+        + '</div>'
+        + '<div style="font-size:.8rem;color:var(--muted);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap">'
+        + (dateStr ? '<span>📅 ' + dateStr + '</span>' : '')
+        + (ev.location ? '<span>📍 ' + escHtml(ev.location) + '</span>' : '')
+        + '<span class="' + s.cls + '">' + s.label + '</span>'
+        + (ev.format ? '<span>' + (ev.format === 'online' ? '💻 Онлайн' : '🏛️ Оффлайн') + '</span>' : '')
+        + '</div>'
+        + '</div>'
+        + '<div>' + actionLink + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* ── Members ──────────────────────────────────────────── */
+  function loadMembers() {
+    fetch('/api/organizations/' + ORG_ID + '/members')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        if (data.error) { document.getElementById('membersList').innerHTML = '<p style="color:var(--muted);font-size:.88rem">' + escHtml(data.error) + '</p>'; return; }
+        renderMembers(data);
+      })
+      .catch(function () {
+        document.getElementById('membersList').innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить участников.</p>';
+      });
+  }
+
+  function renderMembers(members) {
+    var list = document.getElementById('membersList');
+    if (!members.length) {
+      list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Нет участников.</p>';
+      return;
+    }
+    list.innerHTML = '<div class="members-table">'
+      + '<div class="members-header">'
+      + '<span>Участник</span><span>Роль</span>' + (isAdmin ? '<span>Действия</span>' : '')
+      + '</div>'
+      + members.map(function (m) {
+        var fullName = [m.last_name, m.first_name, m.patronymic].filter(Boolean).join(' ') || m.email;
+        var isMe = m.user_id === currentUserId;
+        var roleBadge = m.is_admin
+          ? '<span class="role-admin">⭐ Администратор</span>'
+          : '<span class="role-member">👤 Участник</span>';
+
+        var actions = '';
+        if (isAdmin && !isMe) {
+          if (!m.is_admin) {
+            actions += '<button class="field-btn" onclick="promoteMember(' + m.user_id + ')">Сделать админом</button> ';
+          }
+          actions += '<button class="field-btn field-btn-del" onclick="removeMember(' + m.user_id + ', \'' + escAttr(fullName) + '\')">Удалить</button>';
+        } else if (isMe) {
+          actions = '<span style="font-size:.75rem;color:var(--muted)">Это вы</span>';
+        }
+
+        return '<div class="members-row">'
+          + '<div class="member-info">'
+          + '<div style="font-weight:600;font-size:.88rem">' + escHtml(fullName) + '</div>'
+          + '<div style="font-size:.75rem;color:var(--muted)">' + escHtml(m.email) + '</div>'
+          + '</div>'
+          + '<div>' + roleBadge + '</div>'
+          + (isAdmin ? '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + actions + '</div>' : '')
+          + '</div>';
+      }).join('')
+      + '</div>';
+  }
+
+  window.promoteMember = function (userId) {
+    UniSphereAuth.post('/api/organizations/' + ORG_ID + '/members/' + userId + '/promote', {})
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { alert(d.error); } else { loadMembers(); }
+      });
+  };
+
+  window.removeMember = function (userId, name) {
+    if (!confirm('Удалить ' + name + ' из организации?')) return;
+    UniSphereAuth.post('/api/organizations/' + ORG_ID + '/members/remove', { user_id: userId })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { alert(d.error); } else { loadMembers(); }
+      });
+  };
+
+  /* ── Add member by email ──────────────────────────────── */
+  document.getElementById('addMemberBtn').addEventListener('click', function () {
+    var email = document.getElementById('addMemberEmail').value.trim();
+    var note  = document.getElementById('addMemberNote');
+    if (!email) { showNote(note, 'Введите email пользователя', true); return; }
+    var btn = this;
+    btn.disabled = true;
+
+    UniSphereAuth.post('/api/organizations/' + ORG_ID + '/members/add-by-email', { email: email })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) {
+          showNote(note, d.error, true);
+        } else {
+          document.getElementById('addMemberEmail').value = '';
+          showNote(note, '✓ Пользователь добавлен', false);
+          loadMembers();
+          setTimeout(function () { note.style.display = 'none'; }, 3000);
+        }
+        btn.disabled = false;
+      })
+      .catch(function () { showNote(note, 'Ошибка при добавлении', true); btn.disabled = false; });
+  });
+
+  /* ── Save org ─────────────────────────────────────────── */
+  document.getElementById('saveOrgBtn').addEventListener('click', function () {
+    var name = document.getElementById('orgNameInput').value.trim();
+    var desc = document.getElementById('orgDescInput').value.trim();
+    var note = document.getElementById('saveOrgNote');
+    var btn = this;
+    if (!name) { showNote(note, 'Введите название', true); return; }
+    btn.disabled = true;
+    UniSphereAuth.post('/api/organizations/' + ORG_ID + '/update', { name: name, description: desc })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { showNote(note, d.error, true); }
+        else {
+          document.getElementById('orgName').textContent = name;
+          showNote(note, '✓ Сохранено', false);
+          setTimeout(function () { note.style.display = 'none'; }, 3000);
+        }
+        btn.disabled = false;
+      })
+      .catch(function () { showNote(note, 'Ошибка', true); btn.disabled = false; });
+  });
+
+  /* ── Create event ─────────────────────────────────────── */
+  document.getElementById('createEventBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Создание...';
+    UniSphereAuth.post('/api/events/create', { organization_id: ORG_ID })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.event_id) {
+          window.location.href = '/events/' + d.event_id + '/edit/';
+        } else {
+          alert(d.error || 'Не удалось создать мероприятие');
+          btn.disabled = false;
+          btn.textContent = '+ Создать мероприятие';
+        }
+      })
+      .catch(function () {
+        alert('Ошибка при создании мероприятия');
+        btn.disabled = false;
+        btn.textContent = '+ Создать мероприятие';
+      });
+  });
+
+  function showNote(el, text, isError) {
+    el.textContent = text;
+    el.style.color = isError ? '#b91c1c' : 'var(--muted)';
+    el.style.display = 'block';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escAttr(s) { return escHtml(s); }
+});
+</script>
+</body>
+</html>

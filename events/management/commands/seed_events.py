@@ -18,6 +18,8 @@ SEED_DATA = [
         ),
         'location': 'Технопарк «Сколково», Москва',
         'format': Event.Format.OFFLINE,
+        'categories': ['it', 'hackathon'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 10,
         'event_starts': 15,
@@ -34,6 +36,8 @@ SEED_DATA = [
         ),
         'location': 'МГУ, Главное здание, ауд. 12',
         'format': Event.Format.OFFLINE,
+        'categories': ['lecture', 'it'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 18,
         'event_starts': 22,
@@ -50,6 +54,8 @@ SEED_DATA = [
         ),
         'location': 'Экспоцентр, павильон 7, Москва',
         'format': Event.Format.OFFLINE,
+        'categories': ['networking', 'it'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 25,
         'event_starts': 29,
@@ -66,6 +72,8 @@ SEED_DATA = [
         ),
         'location': 'Онлайн (Zoom)',
         'format': Event.Format.ONLINE,
+        'categories': ['it', 'networking', 'startup'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 12,
         'event_starts': 14,
@@ -82,6 +90,8 @@ SEED_DATA = [
         ),
         'location': 'Дизайн-центр Artplay, Москва',
         'format': Event.Format.OFFLINE,
+        'categories': ['masterclass', 'self_dev'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 35,
         'event_starts': 40,
@@ -97,6 +107,8 @@ SEED_DATA = [
         ),
         'location': 'Digital October, Москва',
         'format': Event.Format.OFFLINE,
+        'categories': ['it', 'lecture', 'networking'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 50,
         'event_starts': 55,
@@ -113,6 +125,8 @@ SEED_DATA = [
         ),
         'location': 'Онлайн',
         'format': Event.Format.ONLINE,
+        'categories': ['it', 'hackathon'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 60,
         'event_starts': 62,
@@ -129,6 +143,8 @@ SEED_DATA = [
         ),
         'location': 'HubMoscow, Москва',
         'format': Event.Format.OFFLINE,
+        'categories': ['startup', 'networking'],
+        'access_type': 'open',
         'reg_opens': 0,
         'reg_closes': 68,
         'event_starts': 70,
@@ -161,13 +177,15 @@ class Command(BaseCommand):
             if org_created:
                 created_orgs += 1
 
-            _, event_created = Event.objects.get_or_create(
+            event, event_created = Event.objects.get_or_create(
                 title=data['title'],
                 organization=org,
                 defaults={
                     'description':        data['description'],
                     'location':           data['location'],
                     'format':             data['format'],
+                    'categories':         data['categories'],
+                    'access_type':        data['access_type'],
                     'is_published':       True,
                     'registration_start': now + timedelta(days=data['reg_opens']),
                     'registration_end':   now + timedelta(days=data['reg_closes']),
@@ -178,6 +196,11 @@ class Command(BaseCommand):
             if event_created:
                 created_events += 1
             else:
+                # Update categories/access_type for existing events that predate the new fields
+                if not event.categories:
+                    event.categories = data['categories']
+                    event.access_type = data['access_type']
+                    event.save(update_fields=['categories', 'access_type'])
                 self.stdout.write(f'  already exists: {data["title"]}')
 
         self.stdout.write(self.style.SUCCESS(

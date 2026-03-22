@@ -10,10 +10,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    .uni-badge-confirmed { font-size:.75rem; font-weight:600; color:#16a34a; background:rgba(22,163,74,.1); border-radius:6px; padding:2px 8px; }
+    .uni-badge-manual    { font-size:.75rem; font-weight:600; color:var(--muted); background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:2px 8px; }
+    .uni-search-wrap { position:relative; }
+    .uni-dropdown {
+      position:absolute; top:100%; left:0; right:0; z-index:50;
+      background:var(--card-bg); border:1.5px solid var(--accent); border-radius:10px;
+      box-shadow:var(--shadow); max-height:200px; overflow-y:auto; display:none;
+    }
+    .uni-option {
+      padding:9px 14px; font-size:.88rem; cursor:pointer;
+      border-bottom:1px solid var(--border); transition:background .15s;
+    }
+    .uni-option:last-child { border-bottom:none; }
+    .uni-option:hover { background:var(--accent-l); color:var(--accent); }
+  </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────── -->
 <header class="header">
   <a href="/" class="logo">
     <img class="logo-icon" src="{% static 'img/logo.png' %}" alt="UniSphere">
@@ -29,17 +44,14 @@
     </button>
   </div>
   <button class="theme-btn" id="themeToggle" title="Переключить тему">🌙</button>
-  <!-- Account button: already on profile, shows initials -->
   <a href="/profile/" class="account-btn" id="accountBtn">?</a>
 </header>
 
-<!-- ── Loading state ──────────────────────────────────── -->
 <div id="profileLoading" class="profile-loading">Загрузка...</div>
 
-<!-- ── Profile ────────────────────────────────────────── -->
 <div class="profile-wrap" id="profileWrap" style="display:none">
 
-  <!-- Hero card -->
+  <!-- Hero -->
   <div class="profile-hero">
     <div class="profile-hero-banner"></div>
     <div class="profile-hero-body">
@@ -47,6 +59,7 @@
       <div class="profile-info">
         <h1 class="profile-name" id="profileName">Загрузка...</h1>
         <p class="profile-email-text" id="profileEmail"></p>
+        <p style="font-size:.82rem;color:var(--muted);margin-top:2px" id="profileUniLine"></p>
       </div>
       <div class="profile-actions">
         <a href="/" class="btn-back">← На главную</a>
@@ -55,42 +68,115 @@
     </div>
   </div>
 
-  <!-- Events -->
-  <div class="profile-grid">
+  <!-- Tabs -->
+  <div class="profile-tabs">
+    <button class="profile-tab active" id="tabEvents" onclick="switchTab('events')">📅 Мои события</button>
+    <button class="profile-tab" id="tabOrgs" onclick="switchTab('orgs')">🏢 Мои организации</button>
+  </div>
 
-    <!-- My events -->
+  <!-- Events tab -->
+  <div class="profile-grid" id="panelEvents">
     <div class="profile-card">
       <h2 class="profile-card-title">📅 Мои события</h2>
-      <div id="myEventsList"><p class="profile-events-loading" style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+      <div id="myEventsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
       <a href="/" class="profile-browse-link">Найти новые события →</a>
     </div>
+  </div>
 
-  </div><!-- .profile-grid -->
+  <!-- Organizations tab -->
+  <div class="profile-grid" id="panelOrgs" style="display:none">
+    <div class="profile-card" style="grid-column:1/-1">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <h2 class="profile-card-title" style="margin-bottom:0">🏢 Мои организации</h2>
+        <button class="card-btn" id="createOrgBtn">+ Создать организацию</button>
+      </div>
+      <div id="createOrgForm" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div class="profile-settings-grid" style="margin-bottom:12px">
+          <div class="profile-field">
+            <label class="profile-field-label">Название организации</label>
+            <input type="text" id="newOrgName" class="profile-input" placeholder="Введите название">
+          </div>
+          <div class="profile-field" style="grid-column:1/-1">
+            <label class="profile-field-label">Описание</label>
+            <textarea id="newOrgDesc" class="profile-input" rows="2" placeholder="Краткое описание" style="resize:vertical"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="card-btn" id="submitCreateOrg">Создать</button>
+          <button class="btn-back" onclick="document.getElementById('createOrgForm').style.display='none'">Отмена</button>
+        </div>
+        <p id="createOrgNote" style="display:none;font-size:.85rem;margin-top:8px"></p>
+      </div>
+      <div id="myOrgsList"><p style="color:var(--muted);font-size:.88rem">Загрузка...</p></div>
+    </div>
+  </div>
 
   <!-- Settings -->
   <div class="profile-card">
     <h2 class="profile-card-title">⚙️ Настройки профиля</h2>
-    <div class="profile-settings-grid">
-      <div class="profile-field">
-        <label class="profile-field-label">Имя</label>
-        <input type="text" id="settingFirstName" class="profile-input" placeholder="Ваше имя">
-      </div>
+
+    <!-- Personal -->
+    <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Личные данные</div>
+    <div class="profile-settings-grid" style="margin-bottom:20px">
       <div class="profile-field">
         <label class="profile-field-label">Фамилия</label>
-        <input type="text" id="settingLastName" class="profile-input" placeholder="Ваша фамилия">
+        <input type="text" id="settingLastName" class="profile-input" placeholder="Фамилия">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Имя</label>
+        <input type="text" id="settingFirstName" class="profile-input" placeholder="Имя">
+      </div>
+      <div class="profile-field" style="grid-column:1/-1">
+        <label class="profile-field-label">Отчество <span style="font-size:.75rem;color:var(--muted)">(если есть)</span></label>
+        <input type="text" id="settingPatronymic" class="profile-input" placeholder="Отчество">
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Дата рождения</label>
+        <input type="date" id="settingBirthDate" class="profile-input">
       </div>
       <div class="profile-field">
         <label class="profile-field-label">Email</label>
         <input type="email" id="settingEmail" class="profile-input" disabled>
       </div>
     </div>
+
+    <!-- University -->
+    <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Учёба</div>
+    <div class="profile-settings-grid" style="margin-bottom:20px">
+      <div class="profile-field" style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <label class="profile-field-label" style="margin:0">Университет</label>
+          <span id="uniConfirmedBadge" style="display:none"></span>
+        </div>
+        <div class="uni-search-wrap">
+          <input type="text" id="settingUniversity" class="profile-input" placeholder="Начните вводить название..." autocomplete="off">
+          <div class="uni-dropdown" id="uniDropdown"></div>
+        </div>
+        <input type="hidden" id="settingUniversityId">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:4px">Университет автоматически определяется по вашему email</p>
+      </div>
+      <div class="profile-field">
+        <label class="profile-field-label">Курс</label>
+        <select id="settingCourse" class="profile-input">
+          <option value="">— не указан —</option>
+          <option value="1">1 курс</option>
+          <option value="2">2 курс</option>
+          <option value="3">3 курс</option>
+          <option value="4">4 курс</option>
+          <option value="5">5 курс</option>
+          <option value="6">6 курс</option>
+          <option value="7">Аспирантура</option>
+        </select>
+      </div>
+    </div>
+
     <div class="profile-settings-footer">
       <button class="card-btn" id="saveSettingsBtn">Сохранить изменения</button>
       <p class="profile-settings-note" id="settingsNote" style="display:none"></p>
     </div>
   </div>
 
-</div><!-- .profile-wrap -->
+</div>
 
 <script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
@@ -103,6 +189,16 @@ document.addEventListener('DOMContentLoaded', function () {
     'rejected': '<span class="status-rejected">Отклонён</span>',
   };
 
+  /* ── Tab switcher ─────────────────────────────────────── */
+  function switchTab(tab) {
+    document.getElementById('panelEvents').style.display = tab === 'events' ? '' : 'none';
+    document.getElementById('panelOrgs').style.display   = tab === 'orgs'   ? '' : 'none';
+    document.getElementById('tabEvents').classList.toggle('active', tab === 'events');
+    document.getElementById('tabOrgs').classList.toggle('active', tab === 'orgs');
+    if (tab === 'orgs') loadOrganizations();
+  }
+  window.switchTab = switchTab;
+
   /* ── Logout ───────────────────────────────────────────── */
   document.getElementById('logoutBtn').addEventListener('click', function () {
     UniSphereAuth.clearUser();
@@ -110,42 +206,98 @@ document.addEventListener('DOMContentLoaded', function () {
       .finally(function () { window.location.href = '/'; });
   });
 
+  /* ── University search ────────────────────────────────── */
+  var uniSearchTimeout = null;
+  var selectedUniId = null;
+
+  document.getElementById('settingUniversity').addEventListener('input', function () {
+    var q = this.value.trim();
+    selectedUniId = null;
+    document.getElementById('settingUniversityId').value = '';
+    clearTimeout(uniSearchTimeout);
+    if (q.length < 2) { closeUniDropdown(); return; }
+    uniSearchTimeout = setTimeout(function () { searchUniversities(q); }, 300);
+  });
+
+  document.getElementById('settingUniversity').addEventListener('blur', function () {
+    setTimeout(closeUniDropdown, 200);
+  });
+
+  function searchUniversities(q) {
+    fetch('/api/users/universities?q=' + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var dd = document.getElementById('uniDropdown');
+        if (!data.length) { closeUniDropdown(); return; }
+        dd.innerHTML = data.map(function (u) {
+          return '<div class="uni-option" data-id="' + u.id + '" data-name="' + escAttr(u.name) + '">'
+            + escHtml(u.name) + '</div>';
+        }).join('');
+        dd.style.display = 'block';
+        dd.querySelectorAll('.uni-option').forEach(function (el) {
+          el.addEventListener('mousedown', function () {
+            selectUniversity(+this.dataset.id, this.dataset.name);
+          });
+        });
+      });
+  }
+
+  function selectUniversity(id, name) {
+    selectedUniId = id;
+    document.getElementById('settingUniversity').value = name;
+    document.getElementById('settingUniversityId').value = id;
+    closeUniDropdown();
+  }
+
+  function closeUniDropdown() {
+    document.getElementById('uniDropdown').style.display = 'none';
+  }
+
   /* ── Save settings ────────────────────────────────────── */
   document.getElementById('saveSettingsBtn').addEventListener('click', function () {
-    var u = UniSphereAuth.getUser();
-    if (!u) return;
+    var u = UniSphereAuth.getUser() || {};
     var btn  = this;
     var note = document.getElementById('settingsNote');
-    u.first_name = document.getElementById('settingFirstName').value.trim();
-    u.last_name  = document.getElementById('settingLastName').value.trim();
+
+    var firstName  = document.getElementById('settingFirstName').value.trim();
+    var lastName   = document.getElementById('settingLastName').value.trim();
+    var patronymic = document.getElementById('settingPatronymic').value.trim();
+    var birthDate  = document.getElementById('settingBirthDate').value;
+    var course     = document.getElementById('settingCourse').value;
+    var uniId      = document.getElementById('settingUniversityId').value;
+
+    var payload = {
+      first_name: firstName,
+      last_name:  lastName,
+      patronymic: patronymic,
+      birth_date: birthDate || undefined,
+      course:     course ? parseInt(course) : null,
+    };
+    if (uniId) payload.university_id = parseInt(uniId);
 
     btn.disabled = true;
-    UniSphereAuth.post('/api/users/me/update', { first_name: u.first_name, last_name: u.last_name })
+    UniSphereAuth.post('/api/users/me/update', payload)
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (d) {
-        if (d && (d.id || d.success)) {
-          UniSphereAuth.setUser(Object.assign(u, d));
+        if (d && d.success) {
+          var updated = Object.assign({}, u, d);
+          UniSphereAuth.setUser(updated);
+          renderProfile(updated);
+          showNote(note, '✓ Изменения сохранены', false);
         } else {
-          UniSphereAuth.setUser(u);
+          showNote(note, d.error || 'Ошибка', true);
         }
-        renderProfile(UniSphereAuth.getUser());
-        showNote(note, '✓ Изменения сохранены', false);
       })
-      .catch(function () {
-        /* API недоступна — сохраняем локально */
-        UniSphereAuth.setUser(u);
-        renderProfile(u);
-        showNote(note, '✓ Сохранено локально', false);
-      })
+      .catch(function () { showNote(note, 'Ошибка при сохранении', true); })
       .finally(function () {
         btn.disabled = false;
-        setTimeout(function () { note.style.display = 'none'; }, 3000);
+        setTimeout(function () { note.style.display = 'none'; }, 3500);
       });
   });
 
   function showNote(el, text, isError) {
     el.textContent = text;
-    el.style.color = isError ? 'var(--error, #b91c1c)' : 'var(--muted)';
+    el.style.color = isError ? '#b91c1c' : 'var(--muted)';
     el.style.display = 'block';
   }
 
@@ -161,12 +313,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         list.innerHTML = data.map(function (reg) {
           var statusHtml = STATUS_LABELS[reg.status] || '<span class="status-pending">' + (reg.status || '') + '</span>';
-          var date = reg.registered_at ? new Date(reg.registered_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          var date = reg.registered_at ? new Date(reg.registered_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) : '';
           return '<div class="profile-event-item">'
             + '<span class="profile-event-emoji">📅</span>'
             + '<div>'
             + '<a href="/events/' + reg.id + '/" class="profile-event-link">' + escHtml(reg.title) + '</a>'
-            + '<div class="profile-event-meta">' + (date ? date + ' &middot; ' : '') + statusHtml + '</div>'
+            + '<div class="profile-event-meta">' + (date ? date + ' · ' : '') + statusHtml + '</div>'
             + '</div></div>';
         }).join('');
       })
@@ -175,27 +327,120 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  /* ── Load organizations ───────────────────────────────── */
+  function loadOrganizations() {
+    var list = document.getElementById('myOrgsList');
+    list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Загрузка...</p>';
+    fetch('/api/organizations/my')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Вы пока не состоите ни в одной организации.</p>';
+          return;
+        }
+        list.innerHTML = '<div class="org-cards-grid">'
+          + data.map(function (org) {
+            return '<a href="/organizations/' + org.id + '/" class="org-card">'
+              + '<div class="org-card-icon">🏢</div>'
+              + '<div class="org-card-info">'
+              + '<div class="org-card-name">' + escHtml(org.name) + '</div>'
+              + '<div class="org-card-role">' + (org.is_admin ? '⭐ Администратор' : '👤 Участник') + '</div>'
+              + (org.description ? '<div class="org-card-desc">' + escHtml(org.description.substring(0,80)) + (org.description.length>80?'...':'') + '</div>' : '')
+              + '</div>'
+              + '<div class="org-card-arrow">→</div>'
+              + '</a>';
+          }).join('') + '</div>';
+      })
+      .catch(function () {
+        list.innerHTML = '<p style="color:var(--muted);font-size:.88rem">Не удалось загрузить организации.</p>';
+      });
   }
 
-  /* ── Render profile from user object ──────────────────── */
+  /* ── Create organization ──────────────────────────────── */
+  document.getElementById('createOrgBtn').addEventListener('click', function () {
+    var form = document.getElementById('createOrgForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.getElementById('submitCreateOrg').addEventListener('click', function () {
+    var name = document.getElementById('newOrgName').value.trim();
+    var desc = document.getElementById('newOrgDesc').value.trim();
+    var note = document.getElementById('createOrgNote');
+    if (!name) { showNote(note, 'Введите название', true); return; }
+    var btn = this;
+    btn.disabled = true;
+    UniSphereAuth.post('/api/organizations/create', { name: name, description: desc })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) { showNote(note, d.error, true); btn.disabled = false; }
+        else {
+          document.getElementById('createOrgForm').style.display = 'none';
+          document.getElementById('newOrgName').value = '';
+          document.getElementById('newOrgDesc').value = '';
+          loadOrganizations();
+          btn.disabled = false;
+        }
+      })
+      .catch(function () { showNote(note, 'Ошибка', true); btn.disabled = false; });
+  });
+
+  /* ── Render profile ───────────────────────────────────── */
   function renderProfile(user) {
     document.getElementById('profileLoading').style.display = 'none';
-    document.getElementById('profileWrap').style.display  = 'flex';
+    document.getElementById('profileWrap').style.display = 'flex';
 
-    var fn   = user.first_name || '';
-    var ln   = user.last_name  || '';
-    var name = [fn, ln].filter(Boolean).join(' ') || user.email || 'Пользователь';
+    var fn  = user.first_name  || '';
+    var ln  = user.last_name   || '';
+    var pat = user.patronymic  || '';
+    var name = [ln, fn, pat].filter(Boolean).join(' ') || user.email || 'Пользователь';
     var ini  = UniSphereAuth.initials(user);
 
     document.getElementById('profileAvatar').textContent = ini;
     document.getElementById('profileName').textContent   = name;
     document.getElementById('profileEmail').textContent  = user.email || '';
     document.getElementById('accountBtn').textContent    = ini;
-    document.getElementById('settingFirstName').value    = fn;
-    document.getElementById('settingLastName').value     = ln;
-    document.getElementById('settingEmail').value        = user.email || '';
+
+    // University line under name
+    var uniLine = document.getElementById('profileUniLine');
+    if (user.university_name) {
+      var badge = user.university_confirmed
+        ? ' <span class="uni-badge-confirmed">✓ подтверждён</span>'
+        : ' <span class="uni-badge-manual">вручную</span>';
+      uniLine.innerHTML = '🎓 ' + escHtml(user.university_name) + badge
+        + (user.course ? ' · ' + user.course + ' курс' : '');
+    } else {
+      uniLine.textContent = '';
+    }
+
+    // Settings fields
+    document.getElementById('settingFirstName').value   = fn;
+    document.getElementById('settingLastName').value    = ln;
+    document.getElementById('settingPatronymic').value  = pat;
+    document.getElementById('settingEmail').value       = user.email || '';
+    if (user.birth_date) document.getElementById('settingBirthDate').value = user.birth_date;
+
+    // University
+    if (user.university_name) {
+      document.getElementById('settingUniversity').value   = user.university_name;
+      document.getElementById('settingUniversityId').value = user.university_id || '';
+      selectedUniId = user.university_id;
+    }
+    var badge = document.getElementById('uniConfirmedBadge');
+    if (user.university_name) {
+      badge.style.display = 'inline';
+      if (user.university_confirmed) {
+        badge.className = 'uni-badge-confirmed';
+        badge.textContent = '✓ подтверждён через email';
+      } else {
+        badge.className = 'uni-badge-manual';
+        badge.textContent = 'указан вручную';
+      }
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Course
+    if (user.course) document.getElementById('settingCourse').value = user.course;
   }
 
   /* ── Auth check ───────────────────────────────────────── */
@@ -203,6 +448,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (user) {
     renderProfile(user);
     loadRegistrations();
+    // Refresh from API to get full data
+    fetch('/api/users/me')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.id) { UniSphereAuth.setUser(d); renderProfile(d); } });
     return;
   }
 
@@ -219,6 +468,10 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .catch(function () { window.location.href = '/auth/'; });
 
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escAttr(s) { return escHtml(s); }
 });
 </script>
 </body>

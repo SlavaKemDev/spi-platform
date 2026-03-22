@@ -139,6 +139,9 @@ def event_detail(request, event_id):
         'org': ev.organization.name,
         'desc': ev.description,
         'format': ev.format,
+        'image_url': ev.image.url if ev.image else None,
+        'categories': ev.categories or [],
+        'access_type': ev.access_type,
     }
     return render(request, 'event_detail.html', {'event': event})
 
@@ -338,3 +341,15 @@ def organizer_page(request, event_id=None):
 
 def about_page(request):
     return render(request, 'about.html')
+
+
+def org_dashboard_page(request, org_id):
+    return render(request, 'org_dashboard.html', {'org_id': org_id})
+
+
+def event_editor_page(request, event_id):
+    return render(request, 'event_editor.html', {'event_id': event_id})
+
+
+def sphere_page(request):
+    return render(request, 'sphere.html')
