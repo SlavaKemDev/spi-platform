@@ -30,6 +30,8 @@ class SwipeOut(Schema):
 @router.post("/new", response={200: SwipeOut, 404: dict})
 def new_swipe(request):
     user = request.user
+    if not user.is_authenticated:
+        return 404, {"message": "User not authenticated"}
 
     pending = EventSwipe.objects.filter(user=user, status=EventSwipe.Status.PENDING).select_related('event').first()
     if pending:
@@ -91,6 +93,9 @@ class SwipeRateIn(Schema):
 @router.post("/{swipe_id}/rate", response={200: SwipeRateIn, 404: dict})
 def rate_swipe(request, swipe_id: int, status: str):
     user = request.user
+    if not user.is_authenticated:
+        return 404, {"message": "User not authenticated"}
+
     swipe = get_object_or_404(EventSwipe, id=swipe_id, user=user)
 
     if swipe.status != EventSwipe.Status.PENDING:

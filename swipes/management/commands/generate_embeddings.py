@@ -27,11 +27,10 @@ class Command(BaseCommand):
         num_batches = (total + batch_size - 1) // batch_size
         for i in tqdm(range(num_batches), desc="Generating embeddings"):
             batch_events = qs[i*batch_size:(i+1)*batch_size]
-            texts = [event.description for event in batch_events]
+            texts = [event.full_text for event in batch_events]
             embeddings = SwipeML.get_embeddings(texts)
 
             for event, embedding in zip(batch_events, embeddings):
                 event.embedding = embedding
-                print(event.embedding)
                 event.save(update_fields=['embedding'])
 

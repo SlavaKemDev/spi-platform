@@ -321,7 +321,7 @@ def publish_event(request, event_id: int):
         return {"error": "Event is already published"}
 
     event.is_published = True
-    event.embedding = SwipeML.get_embeddings(event.description)
+    event.embedding = SwipeML.get_embeddings(event.full_text)
     event.save()
 
     return {

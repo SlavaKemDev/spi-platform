@@ -62,6 +62,10 @@ class Event(models.Model):
         else:
             return "past"
 
+    @property
+    def full_text(self):
+        return f"{self.title}. {self.description}"
+
     def __str__(self):
         return self.title
 
