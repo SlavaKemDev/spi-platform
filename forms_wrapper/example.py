@@ -1,6 +1,6 @@
-from form_reader import read_form
-from field_matcher import match_fields
-from post_form import post_form
+from .form_reader import read_form
+from .field_matcher import match_fields, apply_mapping
+from .post_form import post_form
 
 
 # Данные пользователя из БД
@@ -15,17 +15,23 @@ user_profile = {
 db_columns = list(user_profile.keys())
 
 
-# --- Шаг 1: Админ парсит форму (один раз, сохраняется в БД) ---
+# --- Шаг 1: Парсим форму (один раз, сохраняется в БД) ---
 
-form = read_form("https://kazandigitallegends.com/gaica")
+form = read_form("https://forms.yandex.ru/cloud/69a5b7cdd046887551c0c3bb/")
 
 
-# --- Шаг 2: Матчим поля и генерируем prefill URL (один раз, сохраняется в БД) ---
+# --- Шаг 2: Матчим поля к колонкам БД через LLM (один раз, сохраняется в БД) ---
 
-result = match_fields(form, db_columns, user_profile)
+matched = match_fields(form, db_columns)
 
-print("Маппинг:", result["mapping"])
-print("Поля для ручного ввода:", list(result["manual_fields"].keys()))
+print("Маппинг:", matched["mapping"])
+print("Поля для ручного ввода:", list(matched["manual_fields"].keys()))
+
+
+# --- Шаг 3: Для каждого пользователя — подставляем данные (без LLM) ---
+
+result = apply_mapping(form, matched["mapping"], user_profile)
+
 print("Prefill URL:", result["prefill_url"])
 
 # result["prefill_url"] — отдаём пользователю, он открывает в браузере
@@ -33,21 +39,12 @@ print("Prefill URL:", result["prefill_url"])
 # Остальные (manual_fields) вводит сам.
 
 
-# --- Шаг 3 (альтернатива prefill): POST напрямую ---
+# --- Альтернатива prefill: POST напрямую ---
 # Если prefill не нужен — можно отправить форму от имени пользователя.
 
 # manual_input = {
 #     # поля из result["manual_fields"] которые пользователь заполнил сам
-#     # например: "Трек хакатона": "Музыкотерапия"
 # }
 
-# user_data = {
-#     field: user_profile[col]
-#     for field, col in result["mapping"].items()
-#     if col and col in user_profile
-# }
-# user_data.update(manual_input)
-
-# response = post_form(form, user_data)
+# response = post_form(form, {**result["prefill_url_data"], **manual_input})
 # print("Статус POST:", response.status_code)
-# print("Успех:", "Your response" in response.text or "Ваш ответ" in response.text)

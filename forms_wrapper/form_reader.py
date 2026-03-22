@@ -109,8 +109,6 @@ def _read_google_form(url: str) -> dict:
 
 def _read_generic_form(url: str) -> dict:
     with sync_playwright() as p:
-        # Firefox has a different TLS fingerprint — required for Yandex/some other sites
-        # that block Chromium headless at the TCP/TLS level
         is_yandex = "yandex.ru" in url or "yandex.com" in url
         browser = p.firefox.launch() if is_yandex else p.chromium.launch(
             args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
