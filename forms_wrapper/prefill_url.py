@@ -1,5 +1,5 @@
 from urllib.parse import urlencode, urlparse, parse_qs, urlunparse, urlencode
-from llm_api import LLM
+from .llm_api import LLM
 
 
 GENERIC_PROMPT = """You are generating a prefilled URL for a web form.

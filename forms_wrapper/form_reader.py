@@ -2,7 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from llm_api import LLM
+from .llm_api import LLM
 
 
 PROMPT = """You are analyzing an HTML page that contains a form.
