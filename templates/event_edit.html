@@ -220,8 +220,8 @@
 
       item.innerHTML =
         '<div class="field-item-row">' +
-          '<input placeholder="ID поля (name)" value="' + esc(f.name) + '" data-i="' + i + '" data-key="name">' +
-          '<input placeholder="Название (label)" value="' + esc(f.label) + '" data-i="' + i + '" data-key="label">' +
+          '<input type="hidden" value="' + esc(f.name) + '" data-i="' + i + '" data-key="name">' +
+          '<input placeholder="Название поля" value="' + esc(f.label) + '" data-i="' + i + '" data-key="label">' +
           '<select data-i="' + i + '" data-key="type">' +
             '<option value="text"'     + (f.type==='text'     ? ' selected':'') + '>Текст</option>' +
             '<option value="textarea"' + (f.type==='textarea' ? ' selected':'') + '>Текстовое поле</option>' +
@@ -263,8 +263,12 @@
     }
   });
 
+  function genId() {
+    return 'field_' + Math.random().toString(36).slice(2, 8);
+  }
+
   document.getElementById('addFieldBtn').addEventListener('click', function () {
-    formFields.push({ name: '', label: '', type: 'text', required: false });
+    formFields.push({ name: genId(), label: '', type: 'text', required: false });
     renderFields();
   });
 
@@ -335,8 +339,19 @@
     };
   }
 
+  /* ── Validate ───────────────────────────────────────── */
+  function validate() {
+    var p = collectPayload();
+    if (!p.title) { showMsg('Введите название события.', false); return false; }
+    if (!p.event_start) { showMsg('Укажите начало события.', false); return false; }
+    if (p.event_end && p.event_end < p.event_start) { showMsg('Конец события раньше начала.', false); return false; }
+    if (p.registration_end && p.registration_start && p.registration_end < p.registration_start) { showMsg('Конец регистрации раньше начала.', false); return false; }
+    return true;
+  }
+
   /* ── Save ───────────────────────────────────────────── */
   document.getElementById('saveBtn').addEventListener('click', function () {
+    if (!validate()) return;
     var btn = this;
     btn.disabled = true; btn.textContent = 'Сохранение...';
     msgEl.style.display = 'none';
@@ -356,6 +371,7 @@
 
   /* ── Publish ────────────────────────────────────────── */
   document.getElementById('publishBtn').addEventListener('click', function () {
+    if (!validate()) return;
     var btn = this;
     btn.disabled = true; btn.textContent = 'Публикация...';
     msgEl.style.display = 'none';

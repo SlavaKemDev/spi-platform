@@ -91,6 +91,19 @@
   </div>
 </div>
 
+<!-- ── Registration modal ──────────────────────────────── -->
+<div id="regModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--card-bg);border-radius:20px;padding:32px 28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:20px;color:var(--text)">Регистрация на событие</h2>
+    <div id="regFormFields" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+      <button class="btn-register" id="regSubmitBtn">Подтвердить</button>
+      <button class="btn-back" id="regCancelBtn">Отмена</button>
+    </div>
+    <p id="regModalMsg" style="margin-top:10px;font-size:.88rem;display:none"></p>
+  </div>
+</div>
+
 <script src="{% static 'js/carousel.js' %}"></script>
 <script src="{% static 'js/auth.js' %}"></script>
 <script>
@@ -99,6 +112,8 @@
 
   var btn = document.getElementById('registerBtn');
   var msg = document.getElementById('registerMsg');
+  var modal = document.getElementById('regModal');
+  var modalMsg = document.getElementById('regModalMsg');
 
   var STATUS_LABELS = {
     upcoming:            { text: 'Скоро',                cls: 'card-tag-open'    },
@@ -110,6 +125,14 @@
 
   var REG_STATUS = { pending: 'На рассмотрении', approved: 'Подтверждён', rejected: 'Отклонён' };
 
+  var eventForm = [];
+  var currentUser = null;
+
+  fetch('/api/users/me')
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (d) { if (d && d.id) currentUser = d; })
+    .catch(function () {});
+
   function showMsg(text, ok) {
     msg.textContent = text;
     msg.style.color = ok ? '#16a34a' : '#b91c1c';
@@ -120,7 +143,8 @@
     fetch('/api/events/' + EVENT_ID)
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (data) {
-        /* Status tag */
+        eventForm = Array.isArray(data.form) ? data.form : [];
+
         if (data.status && STATUS_LABELS[data.status]) {
           var s = STATUS_LABELS[data.status];
           var tag = document.getElementById('eventStatusTag');
@@ -129,7 +153,6 @@
           tag.style.display = 'inline-block';
         }
 
-        /* Disable register btn if not open */
         if (data.status === 'past') {
           btn.disabled = true; btn.textContent = 'Событие завершено';
         } else if (data.status === 'registration_closed') {
@@ -138,37 +161,169 @@
           btn.disabled = true; btn.textContent = 'Регистрация не открыта';
         }
 
-        /* Already registered */
         if (data.my_registration) {
           btn.disabled = true;
           btn.textContent = 'Вы зарегистрированы';
           showMsg('Статус: ' + (REG_STATUS[data.my_registration.status] || data.my_registration.status), true);
         }
       })
-      .catch(function () { /* не авторизован — кнопка остаётся */ });
+      .catch(function () {});
   }
 
-  btn.addEventListener('click', function () {
-    btn.disabled = true;
-    btn.textContent = 'Регистрация...';
+  /* ── Modal ──────────────────────────────────────────── */
+  function buildModalForm(fields) {
+    var container = document.getElementById('regFormFields');
+    container.innerHTML = '';
+    fields.forEach(function (f) {
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
 
-    UniSphereAuth.post('/api/events/' + EVENT_ID + '/register', { form_answer: {} })
+      var label = document.createElement('label');
+      label.style.cssText = 'font-size:.85rem;font-weight:600;color:var(--text)';
+      label.textContent = f.label + (f.required ? ' *' : '');
+
+      var input;
+      if (f.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.style.cssText = 'border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.9rem;color:var(--text);background:var(--bg);font-family:inherit;resize:vertical;min-height:80px;';
+      } else if (f.type === 'select') {
+        input = document.createElement('select');
+        input.style.cssText = 'border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.9rem;color:var(--text);background:var(--bg);font-family:inherit;';
+        (f.options || []).forEach(function (opt) {
+          var o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          input.appendChild(o);
+        });
+      } else if (f.type === 'checkbox') {
+        var cbWrap = document.createElement('label');
+        cbWrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer;';
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        cbWrap.appendChild(input);
+        cbWrap.appendChild(document.createTextNode(f.label));
+        input.dataset.name = f.name;
+        input.dataset.ftype = f.type;
+        wrap.appendChild(cbWrap);
+        container.appendChild(wrap);
+        return;
+      } else {
+        input = document.createElement('input');
+        input.type = f.type === 'number' ? 'number' : 'text';
+        input.style.cssText = 'border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.9rem;color:var(--text);background:var(--bg);font-family:inherit;';
+      }
+
+      input.dataset.name = f.name;
+      input.dataset.ftype = f.type;
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      container.appendChild(wrap);
+    });
+  }
+
+  function collectFormAnswer(fields) {
+    var answer = {};
+    var container = document.getElementById('regFormFields');
+    fields.forEach(function (f) {
+      var el = container.querySelector('[data-name="' + f.name + '"]');
+      if (!el) return;
+      if (f.type === 'checkbox') answer[f.name] = el.checked;
+      else if (f.type === 'number') answer[f.name] = el.value !== '' ? Number(el.value) : undefined;
+      else answer[f.name] = el.value;
+    });
+    return answer;
+  }
+
+  function submitRegistration(formAnswer) {
+    var submitBtn = document.getElementById('regSubmitBtn');
+    submitBtn.disabled = true; submitBtn.textContent = 'Отправка...';
+    modalMsg.style.display = 'none';
+
+    UniSphereAuth.post('/api/events/' + EVENT_ID + '/register', { form_answer: formAnswer })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
-        if (res.ok || res.data.registration_id) {
+        if (res.data.registration_id) {
+          modal.style.display = 'none';
+          btn.disabled = true;
           btn.textContent = 'Вы зарегистрированы';
           showMsg('Регистрация прошла успешно!', true);
         } else {
-          btn.disabled = false;
-          btn.textContent = 'Зарегистрироваться';
-          showMsg(res.data.error || 'Не удалось зарегистрироваться.', false);
+          modalMsg.textContent = res.data.error || 'Не удалось зарегистрироваться.';
+          modalMsg.style.color = '#b91c1c';
+          modalMsg.style.display = 'block';
+          submitBtn.disabled = false; submitBtn.textContent = 'Подтвердить';
         }
       })
       .catch(function () {
-        btn.disabled = false;
-        btn.textContent = 'Зарегистрироваться';
-        showMsg('Ошибка соединения. Попробуйте позже.', false);
+        modalMsg.textContent = 'Ошибка соединения.';
+        modalMsg.style.color = '#b91c1c';
+        modalMsg.style.display = 'block';
+        submitBtn.disabled = false; submitBtn.textContent = 'Подтвердить';
       });
+  }
+
+  btn.addEventListener('click', function () {
+    var extraFields = eventForm.filter(function (f) {
+      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
+    });
+
+    if (extraFields.length === 0) {
+      btn.disabled = true; btn.textContent = 'Регистрация...';
+      var answer = {};
+      if (currentUser) {
+        if (currentUser.first_name) answer.first_name = currentUser.first_name;
+        if (currentUser.last_name)  answer.last_name  = currentUser.last_name;
+        if (currentUser.email)      answer.email      = currentUser.email;
+      }
+      submitRegistration(answer);
+      return;
+    }
+
+    // Есть доп. поля — показываем модалку
+    buildModalForm(extraFields);
+    modalMsg.style.display = 'none';
+    document.getElementById('regSubmitBtn').disabled = false;
+    document.getElementById('regSubmitBtn').textContent = 'Подтвердить';
+    modal.style.display = 'flex';
+  });
+
+  document.getElementById('regSubmitBtn').addEventListener('click', function () {
+    var extraFields = eventForm.filter(function (f) {
+      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
+    });
+    var answer = collectFormAnswer(extraFields);
+
+    // Validate
+    for (var i = 0; i < extraFields.length; i++) {
+      var f = extraFields[i];
+      var val = answer[f.name];
+      if (f.required && (val === undefined || val === '' || val === null)) {
+        modalMsg.textContent = 'Заполните поле «' + f.label + '»';
+        modalMsg.style.color = '#b91c1c';
+        modalMsg.style.display = 'block';
+        return;
+      }
+      if (f.type === 'number' && val !== undefined && val !== '' && isNaN(val)) {
+        modalMsg.textContent = 'Поле «' + f.label + '» должно быть числом';
+        modalMsg.style.color = '#b91c1c';
+        modalMsg.style.display = 'block';
+        return;
+      }
+    }
+
+    if (currentUser) {
+      if (currentUser.first_name) answer.first_name = currentUser.first_name;
+      if (currentUser.last_name)  answer.last_name  = currentUser.last_name;
+      if (currentUser.email)      answer.email      = currentUser.email;
+    }
+    submitRegistration(answer);
+  });
+
+  document.getElementById('regCancelBtn').addEventListener('click', function () {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) modal.style.display = 'none';
   });
 
   document.addEventListener('DOMContentLoaded', checkRegistration);
