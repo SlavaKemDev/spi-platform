@@ -127,6 +127,7 @@
 
   var eventForm = [];
   var currentUser = null;
+  var isExternal = false;
 
   fetch('/api/users/me')
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
@@ -144,6 +145,7 @@
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (data) {
         eventForm = Array.isArray(data.form) ? data.form : [];
+        isExternal = !!data.is_external;
 
         if (data.status && STATUS_LABELS[data.status]) {
           var s = STATUS_LABELS[data.status];
@@ -267,16 +269,42 @@
       return;
     }
 
+    /* ── External form: get prefilled link and redirect ── */
+    if (isExternal) {
+      btn.disabled = true; btn.textContent = 'Загрузка ссылки...';
+      fetch('/api/events/' + EVENT_ID + '/registration-link')
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function(d){ return Promise.reject(d); }); })
+        .then(function (data) {
+          if (data.prefill_url) {
+            window.open(data.prefill_url, '_blank');
+            btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+            showMsg('Ссылка открыта в новой вкладке.', true);
+          } else {
+            showMsg(data.error || 'Не удалось получить ссылку.', false);
+            btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+          }
+        })
+        .catch(function (err) {
+          showMsg((err && err.error) || 'Ошибка соединения.', false);
+          btn.disabled = false; btn.textContent = 'Зарегистрироваться';
+        });
+      return;
+    }
+
+    /* ── Internal form registration ──────────────────── */
+    var PROFILE_NAMES = { first_name:1, last_name:1, email:1, patronymic:1, birth_date:1 };
     var extraFields = eventForm.filter(function (f) {
-      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
+      return !PROFILE_NAMES[f.name];
     });
 
-    /* Build answer with fixed fields from user profile */
+    /* Build answer with profile fields from user data */
     var fixedAnswer = {};
     eventForm.forEach(function (f) {
       if (f.name === 'first_name' && currentUser.first_name) fixedAnswer.first_name = currentUser.first_name;
       if (f.name === 'last_name'  && currentUser.last_name)  fixedAnswer.last_name  = currentUser.last_name;
       if (f.name === 'email'      && currentUser.email)      fixedAnswer.email      = currentUser.email;
+      if (f.name === 'patronymic' && currentUser.patronymic) fixedAnswer.patronymic = currentUser.patronymic;
+      if (f.name === 'birth_date' && currentUser.birth_date) fixedAnswer.birth_date = currentUser.birth_date;
     });
 
     if (extraFields.length === 0) {
@@ -294,8 +322,9 @@
   });
 
   document.getElementById('regSubmitBtn').addEventListener('click', function () {
+    var PROFILE_NAMES = { first_name:1, last_name:1, email:1, patronymic:1, birth_date:1 };
     var extraFields = eventForm.filter(function (f) {
-      return f.name !== 'first_name' && f.name !== 'last_name' && f.name !== 'email';
+      return !PROFILE_NAMES[f.name];
     });
     var answer = collectFormAnswer(extraFields);
 
@@ -321,6 +350,8 @@
       if (f.name === 'first_name' && currentUser && currentUser.first_name) answer.first_name = currentUser.first_name;
       if (f.name === 'last_name'  && currentUser && currentUser.last_name)  answer.last_name  = currentUser.last_name;
       if (f.name === 'email'      && currentUser && currentUser.email)      answer.email      = currentUser.email;
+      if (f.name === 'patronymic' && currentUser && currentUser.patronymic) answer.patronymic = currentUser.patronymic;
+      if (f.name === 'birth_date' && currentUser && currentUser.birth_date) answer.birth_date = currentUser.birth_date;
     });
     submitRegistration(answer);
   });

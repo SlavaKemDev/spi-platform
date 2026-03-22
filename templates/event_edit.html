@@ -32,6 +32,74 @@
     .edit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 560px) { .edit-row { grid-template-columns: 1fr; } }
 
+    /* Form type toggle */
+    .form-type-toggle {
+      display: flex; gap: 0; border: 1.5px solid var(--border); border-radius: 10px;
+      overflow: hidden; margin-bottom: 4px;
+    }
+    .form-type-btn {
+      flex: 1; padding: 10px 16px; border: none; background: var(--bg);
+      color: var(--muted); font-size: .88rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background .2s, color .2s;
+    }
+    .form-type-btn.active {
+      background: var(--accent); color: #fff;
+    }
+
+    /* Profile field toggles */
+    .profile-field-toggle {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+    }
+    .profile-field-toggle label {
+      font-size: .88rem; font-weight: 500; color: var(--text); cursor: pointer;
+      display: flex; align-items: center; gap: 6px; flex: 1;
+    }
+    .profile-field-toggle .toggle-hint {
+      font-size: .78rem; color: var(--muted); margin-left: auto;
+    }
+    .toggle-switch {
+      position: relative; width: 40px; height: 22px; flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--border); border-radius: 22px;
+      cursor: pointer; transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 16px; width: 16px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* External form section */
+    .external-form-section {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .external-form-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .external-form-row input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-size: .92rem; color: var(--text);
+      background: var(--bg); font-family: inherit; outline: none;
+    }
+    .external-form-row input:focus { border-color: var(--accent); }
+    .external-form-row button {
+      white-space: nowrap; padding: 10px 18px; border-radius: 8px;
+      background: var(--accent); color: #fff; border: none; font-weight: 600;
+      font-size: .88rem; cursor: pointer; font-family: inherit;
+    }
+    .external-status {
+      font-size: .85rem; padding: 8px 12px; border-radius: 8px;
+    }
+    .external-status.ok { background: #d1fae5; color: #065f46; }
+    .external-status.err { background: #fee2e2; color: #b91c1c; }
+    [data-theme="dark"] .external-status.ok { background: #052e16; color: #34d399; }
+    [data-theme="dark"] .external-status.err { background: #3f0f0f; color: #f87171; }
+
     /* Form fields builder */
     .fields-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
     .field-item {
@@ -138,38 +206,59 @@
         </div>
       </div>
 
-      <!-- Registration form fields builder -->
+      <!-- ── Registration form section ─────────────────── -->
       <div class="edit-field">
-        <label class="edit-label">Поля формы регистрации</label>
-        <div class="fields-list" id="fixedFieldsList">
-          <div class="field-item" style="opacity:.7">
-            <div class="field-item-row">
-              <input value="Имя" disabled style="flex:1">
-              <input value="first_name" disabled style="flex:1">
-              <span style="font-size:.82rem;color:var(--muted)">Текст</span>
-              <label style="font-size:.82rem;color:var(--muted)">Обязательное</label>
+        <label class="edit-label">Форма регистрации</label>
+        <div class="form-type-toggle" id="formTypeToggle">
+          <button type="button" class="form-type-btn active" data-type="internal">Наша форма</button>
+          <button type="button" class="form-type-btn" data-type="external">Внешняя ссылка</button>
+        </div>
+      </div>
+
+      <!-- Internal form section -->
+      <div id="internalFormSection">
+        <div class="edit-field">
+          <label class="edit-label">Данные из личного кабинета</label>
+          <div class="fields-list" id="profileFieldsList">
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" checked data-profile="first_name"><span class="toggle-slider"></span></span> Имя</label>
+              <span class="toggle-hint">first_name</span>
             </div>
-          </div>
-          <div class="field-item" style="opacity:.7">
-            <div class="field-item-row">
-              <input value="Фамилия" disabled style="flex:1">
-              <input value="last_name" disabled style="flex:1">
-              <span style="font-size:.82rem;color:var(--muted)">Текст</span>
-              <label style="font-size:.82rem;color:var(--muted)">Обязательное</label>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" checked data-profile="last_name"><span class="toggle-slider"></span></span> Фамилия</label>
+              <span class="toggle-hint">last_name</span>
             </div>
-          </div>
-          <div class="field-item" style="opacity:.7">
-            <div class="field-item-row">
-              <input value="Почта" disabled style="flex:1">
-              <input value="email" disabled style="flex:1">
-              <span style="font-size:.82rem;color:var(--muted)">Текст</span>
-              <label style="font-size:.82rem;color:var(--muted)">Обязательное</label>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" checked data-profile="email"><span class="toggle-slider"></span></span> Почта</label>
+              <span class="toggle-hint">email</span>
+            </div>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" data-profile="patronymic"><span class="toggle-slider"></span></span> Отчество</label>
+              <span class="toggle-hint">patronymic</span>
+            </div>
+            <div class="profile-field-toggle">
+              <label><span class="toggle-switch"><input type="checkbox" data-profile="birth_date"><span class="toggle-slider"></span></span> Дата рождения</label>
+              <span class="toggle-hint">birth_date</span>
             </div>
           </div>
         </div>
-        <label class="edit-label" style="margin-top:12px">Дополнительные поля</label>
-        <div class="fields-list" id="formFieldsList"></div>
-        <button type="button" class="add-field-btn" id="addFieldBtn">+ Добавить поле</button>
+        <div class="edit-field">
+          <label class="edit-label" style="margin-top:8px">Дополнительные поля</label>
+          <div class="fields-list" id="formFieldsList"></div>
+          <button type="button" class="add-field-btn" id="addFieldBtn">+ Добавить поле</button>
+        </div>
+      </div>
+
+      <!-- External form section -->
+      <div id="externalFormSection" style="display:none">
+        <div class="edit-field external-form-section">
+          <label class="edit-label">Ссылка на внешнюю форму (Google Forms и т.п.)</label>
+          <div class="external-form-row">
+            <input type="url" id="externalUrl" placeholder="https://docs.google.com/forms/d/...">
+            <button type="button" id="attachFormBtn">Привязать</button>
+          </div>
+          <div id="externalStatus" style="display:none" class="external-status"></div>
+        </div>
       </div>
 
       <div class="edit-actions">
@@ -199,14 +288,51 @@
     msgEl.style.display = 'block';
   }
 
-  /* ── Form fields builder ───────────────────────────── */
-  var FIXED_FIELDS = [
-    { name: 'first_name', label: 'Имя',     type: 'text', required: true },
-    { name: 'last_name',  label: 'Фамилия', type: 'text', required: true },
-    { name: 'email',      label: 'Почта',   type: 'text', required: true },
-  ];
-  var FIXED_NAMES = { first_name: true, last_name: true, email: true };
+  /* ── Form type toggle ────────────────────────────────── */
+  var formType = 'internal'; // 'internal' or 'external'
+  var toggleBtns = document.querySelectorAll('.form-type-btn');
 
+  function setFormType(type) {
+    formType = type;
+    toggleBtns.forEach(function (b) {
+      b.classList.toggle('active', b.dataset.type === type);
+    });
+    document.getElementById('internalFormSection').style.display = type === 'internal' ? '' : 'none';
+    document.getElementById('externalFormSection').style.display = type === 'external' ? '' : 'none';
+  }
+
+  toggleBtns.forEach(function (b) {
+    b.addEventListener('click', function () { setFormType(b.dataset.type); });
+  });
+
+  /* ── Profile fields (toggleable) ─────────────────────── */
+  var PROFILE_FIELDS = {
+    first_name: { label: 'Имя', type: 'text' },
+    last_name:  { label: 'Фамилия', type: 'text' },
+    email:      { label: 'Почта', type: 'text' },
+    patronymic: { label: 'Отчество', type: 'text' },
+    birth_date: { label: 'Дата рождения', type: 'text' },
+  };
+
+  function getEnabledProfileFields() {
+    var fields = [];
+    var checkboxes = document.querySelectorAll('[data-profile]');
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) {
+        var name = cb.dataset.profile;
+        var pf = PROFILE_FIELDS[name];
+        fields.push({ name: name, label: pf.label, type: pf.type, required: true });
+      }
+    });
+    return fields;
+  }
+
+  function setProfileFieldState(name, enabled) {
+    var cb = document.querySelector('[data-profile="' + name + '"]');
+    if (cb) cb.checked = enabled;
+  }
+
+  /* ── Custom form fields builder ──────────────────────── */
   var formFields = [];
   var listEl = document.getElementById('formFieldsList');
 
@@ -215,9 +341,7 @@
     formFields.forEach(function (f, i) {
       var item = document.createElement('div');
       item.className = 'field-item';
-
       var showOptions = f.type === 'select';
-
       item.innerHTML =
         '<div class="field-item-row">' +
           '<input type="hidden" value="' + esc(f.name) + '" data-i="' + i + '" data-key="name">' +
@@ -233,7 +357,6 @@
           '<button class="field-remove" data-i="' + i + '">✕</button>' +
         '</div>' +
         (showOptions ? '<input class="field-options-input" placeholder="Варианты через запятую" value="' + esc((f.options||[]).join(', ')) + '" data-i="' + i + '" data-key="options">' : '');
-
       listEl.appendChild(item);
     });
   }
@@ -263,16 +386,55 @@
     }
   });
 
-  function genId() {
-    return 'field_' + Math.random().toString(36).slice(2, 8);
-  }
+  function genId() { return 'field_' + Math.random().toString(36).slice(2, 8); }
 
   document.getElementById('addFieldBtn').addEventListener('click', function () {
     formFields.push({ name: genId(), label: '', type: 'text', required: false });
     renderFields();
   });
 
-  /* ── Load event data ───────────────────────────────── */
+  /* ── External form attach ────────────────────────────── */
+  var externalAttached = false;
+
+  document.getElementById('attachFormBtn').addEventListener('click', function () {
+    var url = document.getElementById('externalUrl').value.trim();
+    var statusEl = document.getElementById('externalStatus');
+    if (!url) {
+      statusEl.className = 'external-status err';
+      statusEl.textContent = 'Введите ссылку на форму.';
+      statusEl.style.display = 'block';
+      return;
+    }
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Привязка...';
+    statusEl.style.display = 'none';
+
+    UniSphereAuth.post('/api/events/' + EVENT_ID + '/attach-external-form', { url: url })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.message) {
+          externalAttached = true;
+          statusEl.className = 'external-status ok';
+          var text = 'Форма привязана!';
+          if (data.manual_fields && data.manual_fields.length > 0) {
+            text += ' Поля, требующие ручного заполнения: ' + data.manual_fields.join(', ');
+          }
+          statusEl.textContent = text;
+        } else {
+          statusEl.className = 'external-status err';
+          statusEl.textContent = data.error || 'Ошибка привязки.';
+        }
+        statusEl.style.display = 'block';
+      })
+      .catch(function () {
+        statusEl.className = 'external-status err';
+        statusEl.textContent = 'Ошибка соединения.';
+        statusEl.style.display = 'block';
+      })
+      .finally(function () { btn.disabled = false; btn.textContent = 'Привязать'; });
+  });
+
+  /* ── Load event data ─────────────────────────────────── */
   function isoToLocal(iso) {
     if (!iso) return '';
     var d = new Date(iso);
@@ -283,11 +445,11 @@
 
   function localToApi(val) {
     if (!val) return '';
-    // datetime-local gives "YYYY-MM-DDTHH:MM", API expects "YYYY-MM-DDTHH:MM:SS"
     return val.length === 16 ? val + ':00' : val;
   }
 
   var isPublished = false;
+  var isExternal = false;
 
   fetch('/api/events/' + EVENT_ID)
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
@@ -295,6 +457,8 @@
       if (data.error) { showMsg(data.error, false); return; }
 
       isPublished = !!data.is_published;
+      isExternal = !!data.is_external;
+
       document.getElementById('pageTitle').textContent =
         isPublished ? 'Просмотр события' : 'Редактирование события';
 
@@ -307,29 +471,52 @@
       document.getElementById('fieldLocation').value = data.location || '';
       document.getElementById('fieldFormat').value   = data.format || 'offline';
 
-      var allFields = Array.isArray(data.form) ? data.form : [];
-      formFields = allFields.filter(function(f) { return !FIXED_NAMES[f.name]; });
-      renderFields();
+      if (isExternal) {
+        setFormType('external');
+        externalAttached = true;
+        var statusEl = document.getElementById('externalStatus');
+        statusEl.className = 'external-status ok';
+        statusEl.textContent = 'Внешняя форма привязана.';
+        statusEl.style.display = 'block';
+      } else {
+        setFormType('internal');
+        // Parse existing form fields — separate profile fields from custom fields
+        var allFields = Array.isArray(data.form) ? data.form : [];
+        var PROFILE_NAMES = { first_name:1, last_name:1, email:1, patronymic:1, birth_date:1 };
+
+        // Turn off all profile toggles first, then enable only those present
+        Object.keys(PROFILE_FIELDS).forEach(function (k) { setProfileFieldState(k, false); });
+        allFields.forEach(function (f) {
+          if (PROFILE_NAMES[f.name]) setProfileFieldState(f.name, true);
+        });
+
+        formFields = allFields.filter(function (f) { return !PROFILE_NAMES[f.name]; });
+        renderFields();
+      }
 
       if (isPublished) {
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('publishBtn').style.display = 'none';
-        // Disable all inputs
+        document.getElementById('formTypeToggle').style.pointerEvents = 'none';
+        document.getElementById('formTypeToggle').style.opacity = '.6';
         var inputs = document.querySelectorAll('.edit-input, .edit-textarea, .edit-select');
         for (var k = 0; k < inputs.length; k++) inputs[k].disabled = true;
         document.getElementById('addFieldBtn').style.display = 'none';
+        document.getElementById('attachFormBtn').disabled = true;
+        // Disable profile toggles
+        var toggles = document.querySelectorAll('[data-profile]');
+        for (var j = 0; j < toggles.length; j++) toggles[j].disabled = true;
       } else {
         document.getElementById('publishBtn').style.display = 'inline-block';
       }
     })
     .catch(function () { showMsg('Не удалось загрузить событие.', false); });
 
-  /* ── Collect form data ─────────────────────────────── */
+  /* ── Collect form data ───────────────────────────────── */
   function collectPayload() {
-    return {
+    var payload = {
       title:              document.getElementById('fieldTitle').value.trim(),
       description:        document.getElementById('fieldDesc').value.trim(),
-      form:               FIXED_FIELDS.concat(formFields.filter(function(f) { return f.name && f.label; })),
       registration_start: localToApi(document.getElementById('fieldRegStart').value),
       registration_end:   localToApi(document.getElementById('fieldRegEnd').value),
       event_start:        localToApi(document.getElementById('fieldEventStart').value),
@@ -337,9 +524,18 @@
       location:           document.getElementById('fieldLocation').value.trim(),
       format:             document.getElementById('fieldFormat').value,
     };
+
+    if (formType === 'internal') {
+      var profileFields = getEnabledProfileFields();
+      var customFields = formFields.filter(function(f) { return f.name && f.label; });
+      payload.form = profileFields.concat(customFields);
+    }
+    // If external, form is null (handled by backend)
+
+    return payload;
   }
 
-  /* ── Validate ───────────────────────────────────────── */
+  /* ── Validate ──────────────────────────────────────── */
   function validate() {
     var p = collectPayload();
     if (!p.title) { showMsg('Введите название события.', false); return false; }
@@ -369,14 +565,19 @@
       .finally(function () { btn.disabled = false; btn.textContent = 'Сохранить'; });
   });
 
-  /* ── Publish ────────────────────────────────────────── */
+  /* ── Publish ──────────────────────────────────────── */
   document.getElementById('publishBtn').addEventListener('click', function () {
     if (!validate()) return;
+
+    if (formType === 'external' && !externalAttached) {
+      showMsg('Сначала привяжите внешнюю форму.', false);
+      return;
+    }
+
     var btn = this;
     btn.disabled = true; btn.textContent = 'Публикация...';
     msgEl.style.display = 'none';
 
-    // Save first, then publish
     UniSphereAuth.post('/api/events/' + EVENT_ID + '/update', collectPayload())
       .then(function (r) { return r.json(); })
       .then(function (data) {
