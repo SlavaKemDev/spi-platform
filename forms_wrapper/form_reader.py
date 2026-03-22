@@ -2,7 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from llm_api import LLM
+from .llm_api import LLM
 
 
 PROMPT = """You are analyzing an HTML page that contains a form.
@@ -109,8 +109,6 @@ def _read_google_form(url: str) -> dict:
 
 def _read_generic_form(url: str) -> dict:
     with sync_playwright() as p:
-        # Firefox has a different TLS fingerprint — required for Yandex/some other sites
-        # that block Chromium headless at the TCP/TLS level
         is_yandex = "yandex.ru" in url or "yandex.com" in url
         browser = p.firefox.launch() if is_yandex else p.chromium.launch(
             args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]

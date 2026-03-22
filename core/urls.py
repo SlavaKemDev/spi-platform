@@ -34,9 +34,9 @@ urlpatterns = [
     path('organizations/<int:org_id>/', organization_page, name='organization_page'),
     path('about/', about_page, name='about_page'),
     path('auth/', auth_page, name='auth'),
-    path('profile/', profile_page, name='profile'),
-    path('home', user_profile, name='user_profile'),  # temporary, for testing purposes
+    path('profile/', profile_page, name='profile')
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

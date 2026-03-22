@@ -17,6 +17,7 @@ beautifulsoup4 = "^4.14.3"
 playwright = "^1.58.0"
 google-genai = "^1.68.0"
 python-dotenv = "^1.2.2"
+pillow = "^12.1.1"
 
 
 [tool.poetry.group.test.dependencies]
