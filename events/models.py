@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from helpers.random_file_name import RandomFileName
+from helpers.nd_array_field import NDArrayField
 
 
 class EventTag(models.Model):
@@ -24,12 +25,12 @@ class Event(models.Model):
     organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE, verbose_name='Организация')
 
     image = models.ImageField(upload_to=RandomFileName('event_images'), blank=True, null=True, verbose_name='Изображение')
-
     tags = models.ManyToManyField(EventTag, blank=True, verbose_name='Теги')
+    form = models.JSONField(default=list, blank=True, verbose_name='Поля формы регистрации')
+
+    embedding = NDArrayField(null=True, blank=True)  # For storing the event embedding vector
 
     is_published = models.BooleanField(default=False, verbose_name='Опубликовано')
-
-    form = models.JSONField(default=list, blank=True, verbose_name='Поля формы регистрации')
 
     registration_start = models.DateTimeField(verbose_name='Дата начала регистрации')
     registration_end = models.DateTimeField(verbose_name='Дата окончания регистрации')
